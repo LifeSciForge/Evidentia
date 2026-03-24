@@ -6,8 +6,8 @@ Refactored from Pharma GTM Simulator to MSL-focused workflow
 
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
+#import plotly.graph_objects as go
+#import plotly.express as px
 from datetime import datetime
 import asyncio
 import json
