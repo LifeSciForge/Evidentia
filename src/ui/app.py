@@ -905,14 +905,16 @@ def display_final_brief_section(state):
     with col1:
         if state.payer_data:
             st.write(f"✓ HTA: {state.payer_data.hta_status or 'Pending'}")
-            st.write(f"✓ Price ceiling: ${state.payer_data.pricing_ceiling:,.0f}" if state.payer_data.pricing_ceiling else "✓ Pricing: TBD")
+            price_text = f"✓ Price ceiling: ${state.payer_data.pricing_ceiling:,.0f}" if (state.payer_data and state.payer_data.pricing_ceiling) else "✓ Pricing: TBD"
+            st.write(price_text)
         else:
             st.write("✓ HTA status pending")
             st.write("✓ Pricing under negotiation")
     
     with col2:
         if state.payer_data:
-            st.write(f"✓ QALY threshold: £{state.payer_data.qaly_threshold:,.0f}" if state.payer_data.qaly_threshold else "✓ QALY: Standard")
+            qaly_text = f"✓ QALY threshold: £{state.payer_data.qaly_threshold:,.0f}" if (state.payer_data and state.payer_data.qaly_threshold) else "✓ QALY: Standard"
+            st.write(qaly_text)
             st.write("✓ Outcomes-based pricing available")
         else:
             st.write("✓ Value-based approach recommended")
