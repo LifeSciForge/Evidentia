@@ -16,6 +16,21 @@ from src.core.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Initialize session state FIRST (before any page code)
+if "workflow_result" not in st.session_state:
+    st.session_state.workflow_result = None
+if "workflow_running" not in st.session_state:
+    st.session_state.workflow_running = False
+if "drug_name" not in st.session_state:
+    st.session_state.drug_name = ""
+if "indication" not in st.session_state:
+    st.session_state.indication = ""
+if "current_hospital" not in st.session_state:
+    st.session_state.current_hospital = None
+if "current_doctor" not in st.session_state:
+    st.session_state.current_doctor = None
+
+
 # Page config - Evidentia branding
 st.set_page_config(
     page_title="Evidentia - MSL Intelligence",
