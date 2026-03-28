@@ -1041,19 +1041,23 @@ def display_qa_chat_section(state):
     
     if submit_button and user_question:
         # Add user question to history
-        st.session_state.chat_history.append({
+        chat_history = st.session_state.get("chat_history", [])
+        chat_history.append({
             'role': 'user',
             'content': user_question
         })
+        st.session_state.chat_history = chat_history
         
         # Generate answer based on brief data
         answer = generate_qa_answer(user_question, state)
         
         # Add answer to history
-        st.session_state.chat_history.append({
+        chat_history = st.session_state.get("chat_history", [])
+        chat_history.append({
             'role': 'assistant',
             'content': answer
         })
+        st.session_state.chat_history = chat_history
         
         # Rerun to display new message (but form is cleared)
         st.rerun()
