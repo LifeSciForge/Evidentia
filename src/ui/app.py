@@ -112,19 +112,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize session state
-if 'workflow_result' not in st.session_state:
-    st.session_state.workflow_result = None
-if 'workflow_running' not in st.session_state:
-    st.session_state.workflow_running = False
-if 'current_hospital' not in st.session_state:
-    st.session_state.current_hospital = None
-if 'current_doctor' not in st.session_state:
-    st.session_state.current_doctor = None
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-
-
-# ============================================================================
 # HOSPITAL DATABASE - REAL US CANCER CENTERS
 # ============================================================================
 
