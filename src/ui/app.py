@@ -29,6 +29,8 @@ if "current_hospital" not in st.session_state:
     st.session_state.current_hospital = None
 if "current_doctor" not in st.session_state:
     st.session_state.current_doctor = None
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
 
 # Page config - Evidentia branding
@@ -991,7 +993,8 @@ def display_qa_chat_section(state):
     st.markdown("*Ask natural language questions about your brief*")
     
     # Display chat history
-    if st.session_state.chat_history:
+    chat_history = st.session_state.get("chat_history", [])
+    if chat_history:
         st.write("**Conversation:**")
         for message in st.session_state.chat_history:
             if message['role'] == 'user':
@@ -1033,11 +1036,13 @@ def display_qa_chat_section(state):
     
     # Clear chat button (moved outside form)
     st.markdown("---")
-    if st.session_state.chat_history:
+    chat_history = st.session_state.get("chat_history", [])
+    if chat_history:
         col1, col2 = st.columns([1, 4])
         with col1:
             if st.button("🗑️ Clear Chat", use_container_width=True):
                 st.session_state.chat_history = []
+                st.rerun()
                 st.rerun()
 
 
