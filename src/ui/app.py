@@ -397,7 +397,31 @@ def run_workflow_sync(workflow, drug_name, indication, status_text, progress_bar
 
 def display_msl_results(state, hospital, doctor):
     """Display MSL-focused intelligence brief"""
-    
+
+    # Check if we have any actual data
+    if not state.market_data and not state.payer_data and not state.competitor_data:
+        st.error("❌ No data found for this drug-indication combination")
+        st.warning(
+            "This could mean:\n"
+            "• The drug may not exist in public clinical trial databases\n"
+            "• It may be too early-stage (pre-clinical or Phase 1)\n"
+            "• The indication may not match trial registrations\n"
+            "• Try a different drug name or established competitor"
+        )
+        return
+
+    # Check if we have any actual data
+    if not state.market_data and not state.payer_data and not state.competitor_data:
+        st.error("❌ No data found for this drug-indication combination")
+        st.warning(
+            "This could mean:\n"
+            "• The drug may not exist in public clinical trial databases\n"
+            "• It may be too early-stage (pre-clinical or Phase 1)\n"
+            "• The indication may not match trial registrations\n"
+            "• Try a different drug name or established competitor"
+        )
+        return
+
     st.header("📊 MSL Intelligence Brief")
     st.markdown("---")
     
