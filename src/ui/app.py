@@ -326,12 +326,13 @@ def main():
         # Run workflow
         run_workflow(drug_name, indication, selected_hospital, selected_doctor)
     
-    # Display results if available
-    if st.session_state.workflow_result:
+    # Display results if available (safe access using .get())
+    workflow_result = st.session_state.get('workflow_result')
+    if workflow_result:
         display_msl_results(
-            st.session_state.workflow_result,
-            st.session_state.current_hospital,
-            st.session_state.current_doctor
+            workflow_result,
+            st.session_state.get('current_hospital'),
+            st.session_state.get('current_doctor')
         )
 
 
