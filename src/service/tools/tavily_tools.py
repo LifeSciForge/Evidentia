@@ -4,6 +4,7 @@ Tavily Web Search Tools
 
 from typing import Dict, Any
 from tavily import TavilyClient
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from src.core.settings import settings
 from src.core.logger import get_logger
 
@@ -12,27 +13,36 @@ logger = get_logger(__name__)
 
 class TavilySearchClient:
     """Client for Tavily web search"""
-    
+
     def __init__(self, api_key: str = None):
         self.api_key = api_key or settings.TAVILY_API_KEY
         self.client = TavilyClient(api_key=self.api_key)
-    
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(Exception),
+        reraise=True,
+    )
+    def _search_with_retry(self, query: str, max_results: int) -> dict:
+        return self.client.search(query, max_results=max_results)
+
     def search(
         self,
         query: str,
         search_depth: str = "advanced",
         max_results: int = 5
     ) -> Dict[str, Any]:
-        """General web search"""
+        """General web search with automatic retry (3 attempts, exponential backoff)."""
         try:
-            result = self.client.search(query, max_results=max_results)
+            result = self._search_with_retry(query, max_results)
             return {
                 "success": True,
                 "answer": result.get("answer", ""),
                 "results": result.get("results", [])
             }
         except Exception as e:
-            logger.error(f"Tavily search error: {str(e)}")
+            logger.error(f"Tavily search error after retries: {str(e)}")
             return {
                 "success": False,
                 "error": str(e),

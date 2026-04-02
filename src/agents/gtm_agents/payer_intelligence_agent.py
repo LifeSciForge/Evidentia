@@ -9,6 +9,7 @@ from src.service.tools.pubmed_tools import search_hta_pubs
 from src.service.tools.tavily_tools import tavily_search, search_payer_coverage, search_pricing_information
 from src.core.llm import get_claude
 from src.core.logger import get_logger
+from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, PayerResponse
 
 logger = get_logger(__name__)
 
@@ -134,16 +135,16 @@ Format your response as JSON with these exact keys:
         try:
             response = llm.invoke(payer_prompt)
             response_text = response.content
-            
-            # Parse JSON from response
-            import json
-            import re
-            
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                payer_data_dict = json.loads(json_match.group())
-                logger.info("✅ Payer intelligence synthesized successfully")
-            else:
+            try:
+                raw = extract_json_from_text(response_text)
+                result = validate_with_pydantic(raw, PayerResponse)
+                if result.valid:
+                    payer_data_dict = result.data.model_dump()
+                    logger.info("✅ Payer intelligence synthesized successfully")
+                else:
+                    logger.warning(f"⚠️ Validation errors: {result.errors}")
+                    payer_data_dict = get_default_payer_data()
+            except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 payer_data_dict = get_default_payer_data()
         except Exception as e:

@@ -10,6 +10,7 @@ from src.service.tools.pubmed_tools import search_pubmed, search_clinical_trials
 from src.service.tools.tavily_tools import tavily_search, search_market_analysis, search_clinical_evidence
 from src.core.llm import get_claude
 from src.core.logger import get_logger
+from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, MarketResearchResponse
 
 logger = get_logger(__name__)
 
@@ -136,17 +137,16 @@ Format your response as JSON with these exact keys:
         try:
             response = llm.invoke(market_sizing_prompt)
             response_text = response.content
-            
-            # Parse JSON from response
-            import json
-            import re
-            
-            # Extract JSON from response
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                market_data_dict = json.loads(json_match.group())
-                logger.info("✅ Market data synthesized successfully")
-            else:
+            try:
+                raw = extract_json_from_text(response_text)
+                result = validate_with_pydantic(raw, MarketResearchResponse)
+                if result.valid:
+                    market_data_dict = result.data.model_dump()
+                    logger.info("✅ Market data synthesized successfully")
+                else:
+                    logger.warning(f"⚠️ Validation errors: {result.errors}")
+                    market_data_dict = get_default_market_data()
+            except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 market_data_dict = get_default_market_data()
         except Exception as e:
@@ -163,6 +163,7 @@ Format your response as JSON with these exact keys:
             patient_population=market_data_dict.get("patient_population"),
             clinical_trials=trials_data,
             key_publications=format_publications_for_storage(publications),
+            market_drivers=market_data_dict.get("market_drivers", []),
             epidemiology={
                 "market_drivers": market_data_dict.get("market_drivers", []),
                 "growth_assumptions": market_data_dict.get("growth_assumptions", []),

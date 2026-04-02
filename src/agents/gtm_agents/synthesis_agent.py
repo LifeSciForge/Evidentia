@@ -8,6 +8,8 @@ from src.schema.gtm_state import GTMState, GTMStrategy
 from src.schema.gtm_output import GTMOutputDocument
 from src.core.llm import get_claude
 from src.core.logger import get_logger
+from src.service.validators.json_validator import extract_json_from_text
+from src.schema.agent_messages import create_agent_message, MESSAGE_TYPES
 from datetime import datetime
 
 logger = get_logger(__name__)
@@ -155,15 +157,10 @@ Format response as JSON with keys:
         try:
             response = llm.invoke(strategy_prompt)
             response_text = response.content
-            
-            import json
-            import re
-            
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                strategy_dict = json.loads(json_match.group())
+            try:
+                strategy_dict = extract_json_from_text(response_text)
                 logger.info("✅ GTM strategy synthesized successfully")
-            else:
+            except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 strategy_dict = get_default_strategy_data()
         except Exception as e:
@@ -203,6 +200,17 @@ Format response as JSON with keys:
         state.completed_at = datetime.now().isoformat()
         state.mark_agent_complete("Synthesis Agent")
         state.agent_status = "completed"
+
+        # Audit trail (activates agent_messages.py schemas — SKILL_05)
+        msg = create_agent_message(
+            agent_name="Synthesis Agent",
+            message_type=MESSAGE_TYPES["SYNTHESIS_COMPLETE"],
+            content={"drug": state.drug_name, "indication": state.indication},
+            confidence_score=0.9,
+        )
+        if not hasattr(state, "agent_messages") or state.agent_messages is None:
+            state.agent_messages = []
+        state.agent_messages.append(msg)
         
         logger.info("✅ Synthesis Agent completed successfully")
         logger.info(f"🎯 Final GTM Strategy Generated")

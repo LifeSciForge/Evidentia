@@ -6,6 +6,7 @@ Integration with PubMed API via Biopython to fetch literature
 from Bio import Entrez
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from src.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -16,10 +17,34 @@ Entrez.email = "gtm-simulator@pharma.ai"
 
 class PubMedClient:
     """Client for PubMed literature search"""
-    
+
     def __init__(self, email: str = "gtm-simulator@pharma.ai"):
         Entrez.email = email
-    
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(Exception),
+        reraise=True,
+    )
+    def _esearch_with_retry(self, query: str, max_results: int) -> list:
+        handle = Entrez.esearch(db="pubmed", term=query, retmax=max_results, sort="date")
+        results = Entrez.read(handle)
+        handle.close()
+        return results.get("IdList", [])
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(Exception),
+        reraise=True,
+    )
+    def _efetch_with_retry(self, id_list: list):
+        handle = Entrez.efetch(db="pubmed", id=",".join(id_list), rettype="xml")
+        articles = Entrez.read(handle)
+        handle.close()
+        return articles
+
     def search_publications(
         self,
         drug_name: str,
@@ -27,38 +52,19 @@ class PubMedClient:
         max_results: int = 20,
     ) -> Dict[str, Any]:
         """
-        Search PubMed for publications
-        
-        Args:
-            drug_name: Drug name to search for
-            condition: Optional condition/indication
-            max_results: Maximum number of results
-            
-        Returns:
-            Dictionary with publication data
+        Search PubMed for publications with automatic retry (3 attempts, exponential backoff).
         """
         try:
-            # Build search query
             if condition:
                 query = f'("{drug_name}"[Title/Abstract] OR "{drug_name}"[Drug Name]) AND ("{condition}"[Title/Abstract] OR "{condition}"[MeSH Terms])'
             else:
                 query = f'"{drug_name}"[Title/Abstract] OR "{drug_name}"[Drug Name]'
-            
+
             logger.info(f"Searching PubMed for: {query}")
-            
-            # Search
-            handle = Entrez.esearch(
-                db="pubmed",
-                term=query,
-                retmax=max_results,
-                sort="date"
-            )
-            search_results = Entrez.read(handle)
-            handle.close()
-            
-            id_list = search_results.get("IdList", [])
+
+            id_list = self._esearch_with_retry(query, max_results)
             logger.info(f"Found {len(id_list)} publications")
-            
+
             if not id_list:
                 return {
                     "success": True,
@@ -66,15 +72,8 @@ class PubMedClient:
                     "publications": [],
                     "query": query
                 }
-            
-            # Fetch details
-            handle = Entrez.efetch(
-                db="pubmed",
-                id=",".join(id_list),
-                rettype="xml"
-            )
-            articles = Entrez.read(handle)
-            handle.close()
+
+            articles = self._efetch_with_retry(id_list)
             
             # Parse articles
             publications = []
@@ -85,7 +84,7 @@ class PubMedClient:
             
             return {
                 "success": True,
-                "total_results": int(search_results.get("Count", 0)),
+                "total_results": len(id_list),
                 "returned_results": len(publications),
                 "publications": publications,
                 "query": query

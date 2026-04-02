@@ -4,6 +4,7 @@ ClinicalTrials.gov API Tools
 
 import requests
 from typing import Dict, Any
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from src.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -13,14 +14,25 @@ BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 
 class ClinicalTrialsClient:
     """Client for ClinicalTrials.gov API v2"""
-    
+
     def __init__(self, base_url: str = BASE_URL):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({
             "User-Agent": "GTM-Simulator/1.0"
         })
-    
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(requests.exceptions.RequestException),
+        reraise=True,
+    )
+    def _get_with_retry(self, url: str, params: dict) -> requests.Response:
+        response = self.session.get(url, params=params, timeout=15)
+        response.raise_for_status()
+        return response
+
     def search_trials(
         self,
         drug_name: str,
@@ -34,19 +46,17 @@ class ClinicalTrialsClient:
         Using ClinicalTrials.gov API v2 (no bracket syntax)
         """
         try:
-            # API v2 uses simple space-separated terms, not bracket syntax
             query = f"{drug_name} {condition}"
-            
+
             params = {
                 "query.term": query,
                 "filter.overallStatus": status,
                 "pageSize": min(max_results, 100),
                 "sort": "LastUpdatePostDate"
             }
-            
+
             logger.info(f"Searching ClinicalTrials.gov for: {query}")
-            response = self.session.get(self.base_url, params=params, timeout=10)
-            response.raise_for_status()
+            response = self._get_with_retry(self.base_url, params)
             
             data = response.json()
             trials = data.get("studies", [])

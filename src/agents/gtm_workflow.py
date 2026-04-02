@@ -52,10 +52,21 @@ class GTMWorkflow:
         
         logger.info("✅ GTM Workflow Graph built successfully")
     
-    async def run(self, drug_name: str, indication: str) -> GTMState:
-        logger.info(f"🚀 Starting GTM Workflow for {drug_name} in {indication}")
-        
-        initial_state = GTMState(drug_name=drug_name, indication=indication)
+    async def run(
+        self,
+        drug_name: str,
+        indication: str,
+        current_doctor: str = None,
+        current_hospital: str = None,
+    ) -> GTMState:
+        logger.info(f"Starting GTM Workflow for {drug_name} in {indication}")
+
+        initial_state = GTMState(
+            drug_name=drug_name,
+            indication=indication,
+            current_doctor=current_doctor,
+            current_hospital=current_hospital,
+        )
         
         try:
             logger.info("⏳ Executing workflow (async)...")

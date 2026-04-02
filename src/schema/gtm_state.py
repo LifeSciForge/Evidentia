@@ -20,6 +20,7 @@ class MarketResearchData:
     clinical_trials: List[Dict[str, Any]] = field(default_factory=list)
     key_publications: List[Dict[str, str]] = field(default_factory=list)
     epidemiology: Dict[str, Any] = field(default_factory=dict)
+    market_drivers: List[str] = field(default_factory=list)
     research_timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     research_notes: str = ""
 
@@ -109,6 +110,76 @@ class MessagingData:
 
 
 @dataclass
+class ClinicalEvidence:
+    """Evidence backing a clinical pillar"""
+    trial_name: str = ""
+    key_data_point: str = ""
+    source: str = ""
+
+
+@dataclass
+class ClinicalPillar:
+    """One of three MSL clinical talking pillars"""
+    pillar_title: str = ""
+    evidence: ClinicalEvidence = field(default_factory=ClinicalEvidence)
+    msl_talking_point: str = ""
+    why_relevant_to_kol: str = ""
+
+
+@dataclass
+class KeyDifferentiator:
+    """Differentiator vs current standard of care"""
+    vs_standard_of_care: str = ""
+    advantage: str = ""
+    evidence: str = ""
+    msl_talking_point: str = ""
+
+
+@dataclass
+class AnticipatedObjection:
+    """A clinical objection the KOL is likely to raise"""
+    objection: str = ""
+    why_they_ask: str = ""
+    probability: str = ""
+    evidence_response: str = ""
+    msl_response: str = ""
+
+
+@dataclass
+class Guardrail:
+    """A claim the MSL must NOT make"""
+    avoid_claim: str = ""
+    reason: str = ""
+    alternative: str = ""
+
+
+@dataclass
+class MSLTalkingPoints:
+    """
+    KOL-specific, clinically-grounded MSL conversation guide.
+    Replaces generic positioning statement + messaging pillars.
+    Output from messaging_agent when current_doctor is set.
+    """
+    kol_name: str = ""
+    kol_institution: str = ""
+    patient_population: str = ""
+    clinical_philosophy: str = ""
+
+    conversation_opener: str = ""
+    opener_why_it_works: str = ""
+    opener_delivery_tips: str = ""
+
+    three_pillars: List[Any] = field(default_factory=list)
+    key_differentiators: List[Any] = field(default_factory=list)
+    anticipated_objections: List[Any] = field(default_factory=list)
+    guardrails: List[Any] = field(default_factory=list)
+
+    tone: str = "Peer-to-peer clinical discussion, not pitch"
+    pace: str = "Deliverable in 2-3 minutes naturally"
+    key_to_success: str = ""
+
+
+@dataclass
 class GTMStrategy:
     """Final GTM Strategy - output from Synthesis Agent"""
     executive_summary: str = ""
@@ -144,6 +215,10 @@ class GTMState:
     drug_name: str
     indication: str
     
+    # KOL context (set from Streamlit sidebar before workflow starts)
+    current_doctor: Optional[str] = None
+    current_hospital: Optional[str] = None
+
     # Agent Outputs
     market_data: Optional[MarketResearchData] = None
     payer_data: Optional[PayerIntelligenceData] = None
@@ -151,6 +226,10 @@ class GTMState:
     icp_profile: Optional[ICPProfile] = None
     messaging_data: Optional[MessagingData] = None
     final_gtm_strategy: Optional[GTMStrategy] = None
+    msl_talking_points: Optional[MSLTalkingPoints] = None
+
+    # Audit trail
+    agent_messages: List[Any] = field(default_factory=list)
     
     # Workflow Metadata
     workflow_id: str = field(default_factory=lambda: datetime.now().strftime("%Y%m%d_%H%M%S"))
