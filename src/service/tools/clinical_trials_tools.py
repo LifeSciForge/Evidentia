@@ -152,15 +152,29 @@ class ClinicalTrialsClient:
             recruitment = protocol.get("recruitmentModule", {})
             design = protocol.get("designModule", {})
             
+            # Extract primary endpoints
+            outcomes_module = protocol.get("outcomesModule", {})
+            primary_outcomes = outcomes_module.get("primaryOutcomes", [])
+            primary_endpoint = "N/A"
+            if primary_outcomes:
+                primary_endpoint = primary_outcomes[0].get("measure", "N/A")
+            
+            # Generate key insight for MSL
+            phase = design.get("phases", [""])[0] if design.get("phases") else ""
+            status = status_module.get("overallStatus", "")
+            key_insight = f"{phase} study, {status}. {primary_endpoint}"
+            
             return {
                 "nct_id": id_module.get("nctId", "N/A"),
                 "title": id_module.get("briefTitle", "N/A"),
                 "status": status_module.get("overallStatus", "N/A"),
-                "phase": design.get("phases", ["N/A"])[0] if design.get("phases") else "N/A",
+                "phase": phase if phase else "N/A",
                 "enrollment": recruitment.get("enrollmentCount", 0),
                 "sponsor": id_module.get("organization", {}).get("fullName", "N/A"),
                 "start_date": status_module.get("startDateStruct", {}).get("date", "N/A"),
-                "completion_date": status_module.get("completionDateStruct", {}).get("date", "N/A")
+                "completion_date": status_module.get("completionDateStruct", {}).get("date", "N/A"),
+                "primary_endpoint": primary_endpoint,
+                "key_insight": key_insight
             }
         except Exception as e:
             logger.error(f"Error parsing trial: {str(e)}")

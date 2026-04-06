@@ -8,6 +8,7 @@ from src.schema.gtm_state import GTMState, MarketResearchData
 from src.service.tools.clinical_trials_tools import search_clinical_trials, get_sponsor_trials
 from src.service.tools.pubmed_tools import search_pubmed, search_clinical_trials_pubs
 from src.service.tools.tavily_tools import tavily_search, search_market_analysis, search_clinical_evidence
+from src.service.tools.who_epidemiology_tools import WHOEpidemiologyClient
 from src.core.llm import get_claude
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, MarketResearchResponse
@@ -63,6 +64,17 @@ async def market_research_agent(state: GTMState) -> GTMState:
         else:
             logger.warning(f"⚠️ PubMed search failed: {pubmed_result.get('error')}")
         
+        
+        # Step 2.5: Fetch WHO epidemiology data
+        logger.info("🌍 Fetching WHO epidemiology data...")
+        who_client = WHOEpidemiologyClient()
+        who_data = who_client.get_cancer_data(state.indication)
+        who_epidemiology = {}
+        if who_data.get("status") == "success":
+            who_epidemiology = who_data.get("data", {})
+            logger.info(f"✅ WHO epidemiology data retrieved: {who_epidemiology.get('cancer_type')}")
+        else:
+            logger.warning("⚠️ WHO epidemiology data not available")
         # Step 3: Search for market analysis
         logger.info("📊 Searching market analysis...")
         market_analysis = search_market_analysis(

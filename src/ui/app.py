@@ -206,6 +206,93 @@ html, body, [class*="css"] {
     border-radius: 5px;
     border-left: 4px solid #B91C1C;
 }
+
+/* ── Talking Points tab classes ─────────────────────────────────────────── */
+.tp-root { font-family: 'Inter','Helvetica Neue','Open Sans',sans-serif; color: #333333; }
+.tp-label { font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#999999; margin:0 0 8px 0; line-height:1.2; }
+.tp-kol-header { background:#003366; border-radius:6px; padding:14px 20px; margin-bottom:24px; display:flex; align-items:baseline; gap:12px; }
+.tp-kol-name { font-size:14px; font-weight:700; color:#ffffff; letter-spacing:0.3px; }
+.tp-kol-meta { font-size:12px; font-weight:400; color:#A8C4E0; }
+.tp-kol-population { font-size:11px; font-weight:400; color:#7BA7CC; font-style:italic; }
+.tp-opener { background:#E8F1F8; border-left:3px solid #003366; border-radius:0 4px 4px 0; padding:16px 20px; font-size:13px; line-height:1.7; color:#333333; margin-bottom:8px; }
+.tp-opener-meta { display:flex; gap:24px; margin-top:10px; }
+.tp-opener-meta-item { font-size:11px; color:#666666; line-height:1.5; }
+.tp-opener-meta-item strong { display:block; font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#999999; margin-bottom:2px; }
+.tp-pillars { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:4px; }
+.tp-pillar { background:#ffffff; border:1px solid #E0E0E0; border-top:3px solid #003366; border-radius:4px; padding:16px; }
+.tp-pillar-number { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#999999; margin-bottom:4px; }
+.tp-pillar-title { font-size:13px; font-weight:600; color:#003366; line-height:1.3; margin-bottom:10px; }
+.tp-evidence-tag { display:inline-block; background:#F5F5F5; border:1px solid #E0E0E0; border-radius:3px; font-size:10px; font-weight:600; color:#666666; letter-spacing:0.04em; padding:2px 7px; margin-bottom:6px; }
+.tp-data-point { font-size:12px; font-weight:600; color:#003366; margin-bottom:10px; line-height:1.4; }
+.tp-talking-point { font-size:13px; font-style:italic; color:#555555; line-height:1.6; border-top:1px solid #F0F0F0; padding-top:10px; margin-top:4px; }
+.tp-pillar-relevance { font-size:11px; color:#999999; line-height:1.5; margin-top:10px; }
+.tp-diff-table { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:4px; }
+.tp-diff-table th { font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:#999999; padding:6px 12px; background:#F5F5F5; border-bottom:1px solid #E0E0E0; text-align:left; }
+.tp-diff-table td { padding:12px 12px; vertical-align:top; border-bottom:1px solid #F0F0F0; color:#333333; line-height:1.5; }
+.tp-diff-advantage { color:#00A86B; font-weight:500; }
+.tp-diff-talking { font-size:12px; font-style:italic; color:#555555; margin-top:4px; }
+.tp-obj-row { border:1px solid #E0E0E0; border-radius:4px; margin-bottom:8px; overflow:hidden; }
+.tp-obj-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#F5F5F5; border-bottom:1px solid #E0E0E0; }
+.tp-obj-title { font-size:13px; font-weight:600; color:#003366; line-height:1.4; }
+.tp-obj-prob { font-size:11px; font-weight:600; color:#FF9500; background:#FFF3E0; border-radius:3px; padding:2px 8px; white-space:nowrap; margin-left:12px; }
+.tp-obj-body { padding:12px 16px; background:#ffffff; }
+.tp-obj-field-label { font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:#999999; margin-bottom:3px; }
+.tp-obj-field-value { font-size:13px; color:#333333; line-height:1.5; margin-bottom:12px; }
+.tp-obj-response { font-size:13px; font-style:italic; color:#555555; line-height:1.6; background:#F5F5F5; border-radius:3px; padding:10px 14px; }
+.tp-guardrail { border-left:3px solid #FF9500; background:#FFFBF5; border-radius:0 4px 4px 0; padding:12px 16px; margin-bottom:8px; }
+.tp-guardrail-avoid { font-size:13px; font-weight:600; color:#333333; margin-bottom:4px; }
+.tp-guardrail-avoid span { font-weight:400; font-style:italic; color:#666666; }
+.tp-guardrail-reason { font-size:12px; color:#666666; margin-bottom:6px; line-height:1.5; }
+.tp-guardrail-instead { font-size:12px; color:#00A86B; font-weight:500; }
+.tp-generic-notice { font-size:12px; color:#999999; margin-bottom:20px; padding:10px 14px; background:#F5F5F5; border-radius:4px; border-left:3px solid #E0E0E0; }
+.tp-generic-pillar { padding:10px 0; border-bottom:1px solid #F0F0F0; font-size:13px; color:#333333; line-height:1.5; }
+.tp-generic-pillar-num { font-size:10px; font-weight:700; color:#999999; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:2px; }
+.tp-diff-pill { display:inline-block; background:#E8F1F8; color:#003366; font-size:11px; font-weight:600; border-radius:3px; padding:3px 9px; margin:3px 4px 3px 0; }
+
+/* ── Expander overrides (Objections tab) ────────────────────────────────── */
+[data-testid="stExpander"] {
+    border: 1px solid #E0E0E0 !important;
+    border-radius: 4px !important;
+    margin-bottom: 16px !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+}
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] .streamlit-expanderHeader {
+    background: #F5F5F5 !important;
+    padding: 16px 20px !important;
+    font-family: 'Inter','Helvetica Neue',sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #003366 !important;
+    line-height: 1.5 !important;
+    border-bottom: none !important;
+    min-height: unset !important;
+}
+[data-testid="stExpander"] summary:hover,
+[data-testid="stExpander"] .streamlit-expanderHeader:hover {
+    background: #E8E8E8 !important;
+}
+[data-testid="stExpander"][open] summary,
+[data-testid="stExpander"][open] .streamlit-expanderHeader {
+    background: #E8F1F8 !important;
+    border-bottom: 1px solid #E0E0E0 !important;
+}
+[data-testid="stExpander"] .streamlit-expanderContent,
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] {
+    padding: 24px 20px !important;
+    background: #FFFFFF !important;
+}
+[data-testid="stExpander"] .streamlit-expanderContent p,
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+[data-testid="stExpander"] summary svg,
+[data-testid="stExpander"] .streamlit-expanderHeader svg {
+    color: #003366 !important;
+    fill: #003366 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -304,7 +391,7 @@ def main():
     # Page header — typographic, no emoji
     st.markdown("""
     <div class="ev-page-header">
-        <p class="ev-brand-title">Evidentia</p>
+        <h1 style="font-size: 48px; font-weight: bold; color: #003366; letter-spacing: 2px; margin: 20px 0;">Evidentia</h1>
         <p class="ev-brand-subtitle">MSL Pre-Call Intelligence Platform</p>
     </div>
     <hr class="ev-divider">
@@ -606,345 +693,12 @@ def display_talking_points_section(state):
         _render_generic_talking_points(state)
 
 
-def _tp_styles() -> str:
-    """Return the CSS stylesheet for the Talking Points tab."""
-    return """
-    <style>
-    /* ── Base font ─────────────────────────────────────────────────────── */
-    .tp-root {
-        font-family: 'Inter', 'Helvetica Neue', 'Open Sans', sans-serif;
-        color: #333333;
-    }
-
-    /* ── Section label ─────────────────────────────────────────────────── */
-    .tp-label {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #999999;
-        margin: 0 0 8px 0;
-        line-height: 1.2;
-    }
-
-    /* ── KOL header strip ──────────────────────────────────────────────── */
-    .tp-kol-header {
-        background: #003366;
-        border-radius: 6px;
-        padding: 14px 20px;
-        margin-bottom: 24px;
-        display: flex;
-        align-items: baseline;
-        gap: 12px;
-    }
-    .tp-kol-name {
-        font-size: 14px;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: 0.3px;
-    }
-    .tp-kol-meta {
-        font-size: 12px;
-        font-weight: 400;
-        color: #A8C4E0;
-    }
-    .tp-kol-population {
-        font-size: 11px;
-        font-weight: 400;
-        color: #7BA7CC;
-        font-style: italic;
-    }
-
-    /* ── Opener block ───────────────────────────────────────────────────── */
-    .tp-opener {
-        background: #E8F1F8;
-        border-left: 3px solid #003366;
-        border-radius: 0 4px 4px 0;
-        padding: 16px 20px;
-        font-size: 13px;
-        line-height: 1.7;
-        color: #333333;
-        margin-bottom: 8px;
-    }
-    .tp-opener-meta {
-        display: flex;
-        gap: 24px;
-        margin-top: 10px;
-    }
-    .tp-opener-meta-item {
-        font-size: 11px;
-        color: #666666;
-        line-height: 1.5;
-    }
-    .tp-opener-meta-item strong {
-        display: block;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #999999;
-        margin-bottom: 2px;
-    }
-
-    /* ── Pillar cards ───────────────────────────────────────────────────── */
-    .tp-pillars {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin-bottom: 4px;
-    }
-    .tp-pillar {
-        background: #ffffff;
-        border: 1px solid #E0E0E0;
-        border-top: 3px solid #003366;
-        border-radius: 4px;
-        padding: 16px;
-    }
-    .tp-pillar-number {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #999999;
-        margin-bottom: 4px;
-    }
-    .tp-pillar-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: #003366;
-        line-height: 1.3;
-        margin-bottom: 10px;
-    }
-    .tp-evidence-tag {
-        display: inline-block;
-        background: #F5F5F5;
-        border: 1px solid #E0E0E0;
-        border-radius: 3px;
-        font-size: 10px;
-        font-weight: 600;
-        color: #666666;
-        letter-spacing: 0.04em;
-        padding: 2px 7px;
-        margin-bottom: 6px;
-    }
-    .tp-data-point {
-        font-size: 12px;
-        font-weight: 600;
-        color: #003366;
-        margin-bottom: 10px;
-        line-height: 1.4;
-    }
-    .tp-talking-point {
-        font-size: 13px;
-        font-style: italic;
-        color: #555555;
-        line-height: 1.6;
-        border-top: 1px solid #F0F0F0;
-        padding-top: 10px;
-        margin-top: 4px;
-    }
-    .tp-pillar-relevance {
-        font-size: 11px;
-        color: #999999;
-        line-height: 1.5;
-        margin-top: 10px;
-    }
-
-    /* ── Differentiator rows ────────────────────────────────────────────── */
-    .tp-diff-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-        margin-bottom: 4px;
-    }
-    .tp-diff-table th {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
-        color: #999999;
-        padding: 6px 12px;
-        background: #F5F5F5;
-        border-bottom: 1px solid #E0E0E0;
-        text-align: left;
-    }
-    .tp-diff-table td {
-        padding: 12px 12px;
-        vertical-align: top;
-        border-bottom: 1px solid #F0F0F0;
-        color: #333333;
-        line-height: 1.5;
-    }
-    .tp-diff-advantage {
-        color: #00A86B;
-        font-weight: 500;
-    }
-    .tp-diff-talking {
-        font-size: 12px;
-        font-style: italic;
-        color: #555555;
-        margin-top: 4px;
-    }
-
-    /* ── Objection rows ─────────────────────────────────────────────────── */
-    .tp-obj-row {
-        border: 1px solid #E0E0E0;
-        border-radius: 4px;
-        margin-bottom: 8px;
-        overflow: hidden;
-    }
-    .tp-obj-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 16px;
-        background: #F5F5F5;
-        border-bottom: 1px solid #E0E0E0;
-    }
-    .tp-obj-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: #003366;
-        line-height: 1.4;
-    }
-    .tp-obj-prob {
-        font-size: 11px;
-        font-weight: 600;
-        color: #FF9500;
-        background: #FFF3E0;
-        border-radius: 3px;
-        padding: 2px 8px;
-        white-space: nowrap;
-        margin-left: 12px;
-    }
-    .tp-obj-body {
-        padding: 12px 16px;
-        background: #ffffff;
-    }
-    .tp-obj-field-label {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
-        color: #999999;
-        margin-bottom: 3px;
-    }
-    .tp-obj-field-value {
-        font-size: 13px;
-        color: #333333;
-        line-height: 1.5;
-        margin-bottom: 12px;
-    }
-    .tp-obj-response {
-        font-size: 13px;
-        font-style: italic;
-        color: #555555;
-        line-height: 1.6;
-        background: #F5F5F5;
-        border-radius: 3px;
-        padding: 10px 14px;
-    }
-
-    /* ── Guardrail rows ─────────────────────────────────────────────────── */
-    .tp-guardrail {
-        border-left: 3px solid #FF9500;
-        background: #FFFBF5;
-        border-radius: 0 4px 4px 0;
-        padding: 12px 16px;
-        margin-bottom: 8px;
-    }
-    .tp-guardrail-avoid {
-        font-size: 13px;
-        font-weight: 600;
-        color: #333333;
-        margin-bottom: 4px;
-    }
-    .tp-guardrail-avoid span {
-        font-weight: 400;
-        font-style: italic;
-        color: #666666;
-    }
-    .tp-guardrail-reason {
-        font-size: 12px;
-        color: #666666;
-        margin-bottom: 6px;
-        line-height: 1.5;
-    }
-    .tp-guardrail-instead {
-        font-size: 12px;
-        color: #00A86B;
-        font-weight: 500;
-    }
-
-    /* ── Delivery footer ────────────────────────────────────────────────── */
-    .tp-delivery-footer {
-        background: #F5F5F5;
-        border-radius: 4px;
-        padding: 14px 18px;
-        display: grid;
-        grid-template-columns: 1fr 1fr 2fr;
-        gap: 16px;
-        margin-top: 4px;
-    }
-    .tp-delivery-item strong {
-        display: block;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
-        color: #999999;
-        margin-bottom: 3px;
-    }
-    .tp-delivery-item span {
-        font-size: 12px;
-        color: #333333;
-        line-height: 1.5;
-    }
-
-    /* ── Generic fallback ───────────────────────────────────────────────── */
-    .tp-generic-notice {
-        font-size: 12px;
-        color: #999999;
-        margin-bottom: 20px;
-        padding: 10px 14px;
-        background: #F5F5F5;
-        border-radius: 4px;
-        border-left: 3px solid #E0E0E0;
-    }
-    .tp-generic-pillar {
-        padding: 10px 0;
-        border-bottom: 1px solid #F0F0F0;
-        font-size: 13px;
-        color: #333333;
-        line-height: 1.5;
-    }
-    .tp-generic-pillar-num {
-        font-size: 10px;
-        font-weight: 700;
-        color: #999999;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
-        margin-bottom: 2px;
-    }
-    .tp-diff-pill {
-        display: inline-block;
-        background: #E8F1F8;
-        color: #003366;
-        font-size: 11px;
-        font-weight: 600;
-        border-radius: 3px;
-        padding: 3px 9px;
-        margin: 3px 4px 3px 0;
-    }
-    </style>
-    <div class="tp-root">
-    """
+def _tp_styles() -> str:  # stub — CSS now lives in global <style> block
+    return ""
 
 
 def _render_msl_talking_points(state, tp):
     """Render the professional MSL talking points UI for a specific KOL."""
-
-    st.markdown(_tp_styles(), unsafe_allow_html=True)
 
     # ── KOL header ───────────────────────────────────────────────────────────
     population_html = (
@@ -1120,13 +874,9 @@ def _render_msl_talking_points(state, tp):
 
         st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
 
 def _render_generic_talking_points(state):
     """Fallback: render generic content when no KOL is selected."""
-
-    st.markdown(_tp_styles(), unsafe_allow_html=True)
 
     st.markdown("""
     <div class="tp-generic-notice">
@@ -1135,7 +885,6 @@ def _render_generic_talking_points(state):
     """, unsafe_allow_html=True)
 
     if not state.messaging_data:
-        st.markdown("</div>", unsafe_allow_html=True)
         st.warning("No messaging data available.")
         return
 
@@ -1168,72 +917,10 @@ def _render_generic_talking_points(state):
             </div>
             """, unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
 
 # ============================================================================
 # MSL TAB: OBJECTIONS & QUESTIONS (merged Objection Handling + Ask Evidentia)
 # ============================================================================
-
-# CSS injected once per tab render — overrides Streamlit expander defaults
-_OBJ_STYLES = """
-<style>
-/* ── Expander container spacing ─────────────────────────────────────── */
-[data-testid="stExpander"] {
-    border: 1px solid #E0E0E0 !important;
-    border-radius: 4px !important;
-    margin-bottom: 16px !important;
-    overflow: hidden !important;
-    box-shadow: none !important;
-}
-
-/* ── Expander header (toggle row) ───────────────────────────────────── */
-[data-testid="stExpander"] summary,
-[data-testid="stExpander"] .streamlit-expanderHeader {
-    background: #F5F5F5 !important;
-    padding: 16px 20px !important;
-    font-family: 'Inter', 'Helvetica Neue', sans-serif !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    color: #003366 !important;
-    line-height: 1.5 !important;
-    border-bottom: none !important;
-    min-height: unset !important;
-}
-
-[data-testid="stExpander"] summary:hover,
-[data-testid="stExpander"] .streamlit-expanderHeader:hover {
-    background: #E8E8E8 !important;
-}
-
-[data-testid="stExpander"][open] summary,
-[data-testid="stExpander"][open] .streamlit-expanderHeader {
-    background: #E8F1F8 !important;
-    border-bottom: 1px solid #E0E0E0 !important;
-}
-
-/* ── Expander content area ──────────────────────────────────────────── */
-[data-testid="stExpander"] .streamlit-expanderContent,
-[data-testid="stExpander"] [data-testid="stExpanderDetails"] {
-    padding: 24px 20px !important;
-    background: #FFFFFF !important;
-}
-
-/* Remove default paragraph margins inside expander content */
-[data-testid="stExpander"] .streamlit-expanderContent p,
-[data-testid="stExpander"] [data-testid="stExpanderDetails"] p {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-}
-
-/* ── Expander chevron icon ──────────────────────────────────────────── */
-[data-testid="stExpander"] summary svg,
-[data-testid="stExpander"] .streamlit-expanderHeader svg {
-    color: #003366 !important;
-    fill: #003366 !important;
-}
-</style>
-"""
 
 # Reusable helper: build HTML block for a single objection's expanded content
 def _obj_content_html(why="", evidence="", response="",
@@ -1293,9 +980,6 @@ def _obj_content_html(why="", evidence="", response="",
 
 def display_objection_handling_section(state):
     """Professional objection handling + inline Ask Evidentia Q&A."""
-
-    # Inject expander CSS overrides once
-    st.markdown(_OBJ_STYLES, unsafe_allow_html=True)
 
     # ── Section A: Anticipated Objections ────────────────────────────────────
     doctor_name = (st.session_state.get("current_doctor") or "").split("(")[0].strip()
@@ -1689,6 +1373,7 @@ def display_clinical_evidence_section(state):
             status = trial.get("status", "") or ""
             phase = trial.get("phase", "") or ""
             endpoint = trial.get("primary_endpoint", trial.get("primary_outcome", "")) or "—"
+            key_insight = trial.get("key_insight", "") or "—"
 
             nct_html = (
                 f'<a href="https://clinicaltrials.gov/ct2/show/{nct}" target="_blank" '
@@ -1712,6 +1397,7 @@ def display_clinical_evidence_section(state):
                 f'<td style="{td_style}">{status_html}</td>'
                 f'<td style="{td_style}">{phase}</td>'
                 f'<td style="{td_style}">{str(endpoint)[:60]}</td>'
+                f'<td style="{td_style}">{str(key_insight)[:80]}</td>'
                 f'</tr>'
             )
 
@@ -1724,6 +1410,7 @@ def display_clinical_evidence_section(state):
             f'<th style="{th_style}">Status</th>'
             f'<th style="{th_style}">Phase</th>'
             f'<th style="{th_style}">Primary Endpoint</th>'
+            f'<th style="{th_style}">Key Insight</th>'
             f'</tr></thead><tbody>{rows}</tbody></table></div>',
             unsafe_allow_html=True
         )
