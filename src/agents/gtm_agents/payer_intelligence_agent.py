@@ -121,7 +121,9 @@ Please provide reimbursement strategy recommendations:
 6. Geographic prioritization for payer targeting
 7. Managed access program recommendations
 
-Format your response as JSON with these exact keys:
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
 - hta_status (string: e.g., "Recommended", "Not recommended", "Under review")
 - qaly_threshold (float, in pounds/euros per QALY)
 - pricing_ceiling (float, in USD)

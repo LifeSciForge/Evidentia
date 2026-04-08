@@ -126,7 +126,9 @@ Please provide:
 5. Key market drivers
 6. Growth assumptions
 
-Format your response as JSON with these exact keys:
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
 - tam_estimate (float, in millions USD)
 - sam_estimate (float, in millions USD)
 - som_estimate (float, in millions USD)

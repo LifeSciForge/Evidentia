@@ -87,25 +87,27 @@ Also provide:
 - Competitive threats to our launch
 - Competitive opportunities we can exploit
 
-Format your response as JSON with this structure:
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Use this exact structure:
 {{
   "competitors": [
     {{
       "name": "string",
       "company": "string",
-      "market_share": float (0-100),
-      "pricing": float (USD),
-      "key_differentiators": [strings],
-      "clinical_advantages": [strings],
-      "clinical_disadvantages": [strings],
+      "market_share": 0.0,
+      "pricing": 0.0,
+      "key_differentiators": ["string"],
+      "clinical_advantages": ["string"],
+      "clinical_disadvantages": ["string"],
       "launch_date": "string",
-      "annual_sales": float (USD millions)
+      "annual_sales": 0.0
     }}
   ],
-  "competitive_gaps": {{"gap_1": "description", "gap_2": "description"}},
+  "competitive_gaps": {{"gap_1": "description"}},
   "positioning_strategy": "string",
-  "threats": [strings],
-  "opportunities": [strings]
+  "threats": ["string"],
+  "opportunities": ["string"]
 }}
 """
         

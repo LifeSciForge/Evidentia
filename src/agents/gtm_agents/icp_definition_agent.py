@@ -5,9 +5,11 @@ Defines Ideal Customer Profile based on market and competitive data
 
 from typing import Dict, Any
 from src.schema.gtm_state import GTMState, ICPProfile
+from src.service.tools.tavily_tools import tavily_search
 from src.core.llm import get_claude
 from src.core.logger import get_logger
 from src.utils.formatters import safe_join, safe_format_list
+from src.service.validators.json_validator import extract_json_from_text
 
 logger = get_logger(__name__)
 
@@ -110,36 +112,32 @@ Please define:
    - Estimate addressable market by primary segment
    - Estimate by secondary segment
 
-Format response as JSON with keys:
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
 - primary_icp (object)
 - secondary_icp (object)
-- buying_committee (object with role names as keys and influence scores)
-- urgency_triggers (list)
-- geography_priority (list)
-- tam_by_segment (object)
+- buying_committee (object with role names as keys and influence scores as string values)
+- urgency_triggers (list of strings)
+- geography_priority (list of strings)
+- tam_by_segment (object with segment names as keys and USD values as floats)
 - icp_summary (string)
 """
         
         try:
             response = llm.invoke(icp_prompt)
             response_text = response.content
-            
-            # Parse JSON from response
-            import json
-            import re
-            
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                icp_data_dict = json.loads(json_match.group())
+            try:
+                icp_data_dict = extract_json_from_text(response_text)
                 logger.info("✅ ICP definition synthesized successfully")
-            else:
+            except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 icp_data_dict = get_default_icp_data()
         except Exception as e:
             logger.error(f"❌ LLM synthesis error: {str(e)}")
             icp_data_dict = get_default_icp_data()
         
-        # Step 2: Build ICP profile object
+        # Step 4: Build ICP profile object
         primary_icp = icp_data_dict.get("primary_icp", {})
         secondary_icp = icp_data_dict.get("secondary_icp", {})
         

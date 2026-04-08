@@ -293,7 +293,9 @@ Please create a positioning framework with:
    - Objection 1: Response strategy
    - Objection 2: Response strategy
 
-Format response as JSON with keys:
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
 - category_definition (string)
 - positioning_statement (string)
 - key_differentiators (list of strings)
@@ -345,13 +347,15 @@ For this persona, provide:
 5. 3 success metrics they care about
 6. 2-3 engagement triggers
 
-Format as JSON with keys:
-- role_description
-- pain_points (list)
-- value_propositions (list)
-- objection_responses (object)
-- success_metrics (list)
-- engagement_triggers (list)
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
+- role_description (string)
+- pain_points (list of strings)
+- value_propositions (list of strings)
+- objection_responses (object: objection -> response)
+- success_metrics (list of strings)
+- engagement_triggers (list of strings)
 """
             
             try:

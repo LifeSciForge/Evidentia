@@ -139,18 +139,20 @@ Now create a complete GTM strategy with:
 12. Competitive Moat:
     - How we sustain advantage long-term
 
-Format response as JSON with keys:
-- executive_summary (object)
-- market_opportunity (object)
-- target_segment (object)
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
+- executive_summary (object with "summary" key)
+- market_opportunity (object with "overview" key)
+- target_segment (object with "segment" key)
 - positioning (object)
 - channel_strategy (object)
-- pricing_strategy (object)
-- reimbursement_strategy (object)
+- pricing_strategy (object with "approach", "price_low", "price_high" keys)
+- reimbursement_strategy (object with "approach" key)
 - timeline (object)
 - resources (object)
-- success_metrics (list)
-- risks_and_mitigations (object)
+- success_metrics (list of strings)
+- risks_and_mitigations (object: risk -> mitigation)
 - competitive_moat (string)
 """
         
