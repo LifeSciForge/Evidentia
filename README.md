@@ -1,451 +1,528 @@
-🏥 Evidentia - AI-Powered MSL Pre-Call Intelligence Briefs
+# Evidentia — MSL Pre-Call Intelligence Platform
 
-[Try Live Demo →](https://evidentia-production-73a5.up.railway.app)
+[Live Demo](https://evidentia-production-73a5.up.railway.app)
 
-Production-grade LangGraph multi-agent system that generates complete pharmaceutical Medical Science Liaison (MSL) pre-call briefs in 90 seconds. Automates 30-45 minutes of manual research.**
+Production-grade LangGraph multi-agent system that generates pharmaceutical Medical Science Liaison (MSL) pre-call briefs in 90 seconds using publicly available clinical data.
 
 ---
 
-## 🎯 The Business Impact
+## Overview
 
-**MSLs spend 30-45 minutes researching before each physician call.**
+Evidentia automates the research phase of MSL physician calls. Instead of spending 30-45 minutes gathering trial data, competitive intelligence, and physician profiles, MSLs generate a complete, personalized brief in 90 seconds.
+
+**Current State:** Phase 1 clinical brief generator using public APIs (ClinicalTrials.gov, PubMed, Tavily search).
+
+**Future State:** Enterprise intelligence platform with CRM, payer feeds, and claims data integration.
+
+---
+
+## What This Actually Does (Honest Assessment)
+
+### Real Data Sources
+- Clinical trial data from ClinicalTrials.gov API
+- Journal publications from PubMed Entrez API
+- Physician profiles via user input and web search
+- Market news from Tavily search API
+
+### Templated Components
+- Personalized conversation openers (tailored to physician specialty and indication)
+- Tiered discovery questions (structure + clinical context)
+- Objection response strategies (bridge format: acknowledge → pivot to drug strengths)
+- "Do Not Say" compliance guardrails (regulatory language guardrails)
+
+### Phase 1 Limitations (Not Built Yet)
+- No CRM/EHR integration (no real prescribing patterns or patient volumes)
+- No payer formulary feeds (no real access barrier data)
+- No real-time competitor tracking (news-based only)
+- No claims data integration (no patient journey mapping)
+
+**Bottom Line:** Evidentia generates high-quality clinical briefs for MSLs. It personalizes well-structured templates. It is not (yet) an enterprise intelligence platform with proprietary data access.
+
+---
+
+## Business Impact
 
 At a pharma company with 150 MSLs:
 
-150 MSLs × 5 calls/week × 0.75 hours/call = 562 hours/week wasted
-562 hours × $100/hour (loaded cost) = $56,200/week in lost productivity
-Annually: $2.9M+ in avoidable research overhead
-
-**Evidentia cuts this to 90 seconds per brief.**
-
-**Result:** $2.9M+ annual value unlocked at a single pharma company.
-
----
-
-## ⚡ Try It Now (60 Seconds)
-
-1. **Visit:** [evidentia-production-73a5.up.railway.app](https://evidentia-production-73a5.up.railway.app)
-2. **Select:** Hospital → Doctor → Drug Name → Indication
-3. **Generate:** Click "Generate MSL Brief" (watch 6 agents run in parallel)
-4. **Review:** Browse 9 intelligence tabs
-5. **Download:** Export as JSON
-
-**Example:** Try `sotorasib` + `KRAS-mutant colorectal cancer` for a working demo.
-
----
-
-## ✨ What Evidentia Does
-
-### Problem Solved
-❌ MSLs spend 30-45 mins researching before each call  
-❌ Inconsistent talking points across field teams  
-❌ Risk of missing key objections or competitive gaps  
-❌ Slow onboarding of new MSL team members (weeks to ramp)  
-
-### Solution
-✅ **AI-generated briefs in 90 seconds** (6 parallel agents)  
-✅ **Consistent, data-backed messaging** (Claude-synthesized)  
-✅ **Pre-loaded objection responses** (from competitive analysis)  
-✅ **Day-1 productivity for new MSLs** (no ramp-up needed)  
-
----
-
-## 🧠 Why LangGraph (Not RAG or Simple Prompting)
-
-### The Problem with Sequential Processing
-
-RAG excels at retrieval: "What's the evidence for Drug X?"
-
-But MSL briefs require **synthesis across multiple specialized domains simultaneously:**
-- PubMed clinical evidence **AND**
-- ClinicalTrials.gov competitor trials **AND**
-- Payer reimbursement decisions **AND**
-- KOL sentiment mapping **AND**
-- Positioning strategy
-
-A RAG system or naive prompting approach processes these sequentially:
-1. Search PubMed (30s) → wait
-2. Search trials (20s) → wait
-3. Search news (15s) → wait
-4. Synthesize (20s)
-**Total: 85+ seconds with mostly waiting.**
-
-### The LangGraph Solution: Parallel Orchestration
-
-6 specialized agents run **concurrently**, each expert in their domain:
-
 ```
-Agent 1 (Clinical)    ──┐
-Agent 2 (Payer)       ──┼→ Shared GTMState ──→ Agent 6 (Synthesis)
-Agent 3 (Competitor)  ──┤
-Agent 4 (ICP)         ──┤
-Agent 5 (Messaging)   ──┘
+150 MSLs × 5 calls/week × 45 min/call = 562.5 hours/week of research
+562.5 hours × $100/hour (loaded cost) = $56,250/week saved
+Annually: $2.9M+ in research time recovered
 ```
 
-**Key insight:** They share a single immutable `GTMState` object.
-- No hallucinations (agents don't fabricate data)
-- No stale cached data (one source of truth)
-- Dynamic routing (Agent 1's finding can alter Agent 2's search)
-
-**Result:** 90 seconds, not 30-45 minutes.
-
-This architectural pattern is directly applicable to any pharma workflow:
-GTM strategy generation, clinical trial tracking, competitive intelligence, Market Access automation.
+**Per MSL:** ~8 hours saved per week = $9,600/year in productivity value.
 
 ---
 
-## 📊 Core Features
+## Quick Start
 
-### 🏥 Real US Hospital Database
-- 8 major cancer centers (MD Anderson, Memorial Sloan Kettering, Mayo Clinic, Cleveland Clinic, Dana-Farber, UCSF, Johns Hopkins, Stanford)
-- Real oncologist names & specialties
-- Dynamic dropdown selection for realistic demo scenarios
+### Try the Live Demo
+1. Visit [evidentia-production-73a5.up.railway.app](https://evidentia-production-73a5.up.railway.app)
+2. Select: Hospital → Physician → Drug Name → Indication
+3. Click "Generate MSL Brief"
+4. Review 7 intelligence tabs + Download PDF
 
-### 🤖 6-Agent LangGraph System
-1. **Market Research Agent** - Clinical trials, epidemiology, TAM/SAM/SOM sizing
-2. **Payer Intelligence Agent** - HTA status, QALY thresholds, reimbursement criteria
-3. **Competitor Analysis Agent** - Market positioning, competitive gaps, pricing
-4. **ICP Definition Agent** - Buyer personas, urgency triggers, geography priority
-5. **Messaging & Positioning Agent** - Key differentiators, value propositions
-6. **GTM Synthesis Agent** - Integrated strategy, channels, timeline, success metrics
+**Demo Data:** Try ivonescimab + Dr. Syedain Gulrez (Mayo Clinic) + Non-Small Cell Lung Cancer
 
-### 📋 9 Interactive Output Tabs
+### Local Development
+
+**Prerequisites:**
+- Python 3.11+
+- ANTHROPIC_API_KEY (from Claude API)
+- TAVILY_API_KEY (from Tavily)
+
+**Installation:**
+```bash
+git clone https://github.com/LifeSciForge/Evidentia.git
+cd Evidentia
+
+cp .env.example .env
+# Add ANTHROPIC_API_KEY and TAVILY_API_KEY to .env
+
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+Access: http://localhost:8501
+
+---
+
+## Core Features
+
+### 7 Interactive Output Tabs
+
 | Tab | Purpose |
 |-----|---------|
-| 💬 **Talking Points** | 3 key messages, positioning pillars, elevator pitch |
-| ⚠️ **Objection Handling** | Pre-loaded responses to 8-10 expected doctor objections |
-| ❓ **Discovery Questions** | 12-15 guided questions to uncover physician needs |
-| 📊 **Clinical Evidence** | Trial data, market sizing, patient population, epidemiology |
-| 💰 **Reimbursement** | HTA status, QALY threshold, pricing ceiling, access restrictions |
-| 🏆 **Competitive Position** | 3-competitor analysis, our advantages, market gaps |
-| 📋 **Final Brief** | 5-minute pre-call executive summary |
-| 💬 **Ask Evidentia** | Natural language Q&A powered by Claude |
-| 📥 **Download Brief** | Export as JSON (CSV/PDF coming soon) |
+| Talking Points | 3 clinical pillars, positioning statement, conversation opener, "Do Not Say" compliance rules |
+| Objections & Questions | Pre-loaded responses to 8-10 anticipated objections with evidence and follow-up points |
+| Discovery Questions | Tiered questions: Tier 1 (must-ask), Tier 2 (context-dependent), Tier 3 (nice-to-have) |
+| Clinical Evidence | Active trials (table), key publications (with PMIDs), market sizing (TAM/SAM/SOM), patient population |
+| Competitive Position | Affirmative positioning statements vs. 3 main competitors, competitor overview table |
+| Final Brief | Executive summary formatted for 5-minute pre-call review |
+| Download Brief | Export as professional PDF (mobile-friendly, printable) |
 
-### 💬 "Ask Evidentia" - Real-Time Q&A
-Ask any question about the generated brief in plain English:
-- "What if the doctor asks about side effects?"
-- "How do we compare to pembrolizumab?"
-- "What's our pricing strategy vs competitors?"
+### Real US Hospital Database
+- 8 major cancer centers (MD Anderson, MSK, Mayo Clinic, Cleveland Clinic, Dana-Farber, UCSF, Johns Hopkins, Stanford)
+- Real oncologist names, specialties, and practice focuses
+- Dynamic selection for realistic scenarios
 
-Claude responds in real-time, referencing the synthesized brief data.
+### Ask Evidentia Q&A
+Ask follow-up questions in plain English:
+- "What if the doctor asks about side effects vs. pembro?"
+- "What's our unique value in PD-L1 negative patients?"
+- "How should I handle the cost objection?"
+
+Claude responds in real-time, referencing the generated brief.
 
 ---
 
-## 🏗️ System Architecture
+## Standout Features (Validated by Field)
+
+### "Do Not Say" Compliance Section
+MSLs get explicit guardrails for what NOT to claim:
+- ❌ "Superior to standard of care" (without head-to-head data)
+- ❌ "Breakthrough therapy" or "First-in-class" (marketing language)
+- ✅ Instead: "Early signals suggest potential activity in acquired resistance settings"
+
+**Why it matters:** Pharma compliance teams care deeply about non-promotional language. This prevents regulatory risk.
+
+### Tiered Discovery Questions
+Instead of 20 unstructured questions, Evidentia structures them:
+- **Tier 1 (Must-Ask):** Every call. Foundation questions about patient population fit.
+- **Tier 2 (Context-Dependent):** Follow-ups based on Tier 1 answers.
+- **Tier 3 (Nice-to-Have):** Bonus questions if time permits.
+
+**Why it matters:** MSLs know when to ask what. This is practical, not theoretical.
+
+### Physician-Specific Conversation Opener
+Not generic NSCLC talking points. The opener is personalized to the specific physician's focus area (e.g., resistance mechanisms, combination therapy approach, complex case management).
+
+---
+
+## System Architecture
+
+### High-Level Data Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    USER INPUT (Sidebar)                          │
-│      Hospital → Doctor → Drug Name → Indication                 │
+│                         USER INTERFACE                           │
+│                     (Streamlit Web App)                          │
+│  Hospital Selection → Physician → Drug Name → Indication         │
 └────────────────────┬────────────────────────────────────────────┘
                      │
                      ▼
-         ┌───────────────────────────┐
-         │  LangGraph StateGraph     │
-         │  (Parallel Agent Layer)   │
-         └───────────────────────────┘
-              │      │      │      │      │
-              ▼      ▼      ▼      ▼      ▼
-            Agent   Agent  Agent  Agent  Agent
-             1       2      3      4      5
-          Market  Payer Competitor ICP  Messaging
-          Res    Intel  Analysis  Def    &
-                                      Position
-              │      │      │      │      │
-              └──────┴──────┴──────┴──────┘
-                        │
-                        ▼
-              ┌──────────────────┐
-              │    Agent 6       │
-              │ GTM Synthesis    │
-              └──────────────────┘
-                        │
-                        ▼
-         ┌───────────────────────────┐
-         │  Streamlit UI - 9 Tabs    │
-         │  (Interactive Brief)      │
-         └───────────────────────────┘
-                        │
-                        ▼
-         ┌───────────────────────────┐
-         │ MSL Intelligence Brief    │
-         │ (JSON/CSV/PDF Export)     │
-         └───────────────────────────┘
+        ┌──────────────────────────────┐
+        │   GTM Workflow Orchestrator  │
+        │      (LangGraph State)       │
+        └────────────────┬─────────────┘
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+    ┌─────────────┐ ┌──────────────┐ ┌──────────────┐
+    │   Agent 1   │ │   Agent 2    │ │   Agent 3    │
+    │   Market    │ │    Payer     │ │  Competitor  │
+    │  Research   │ │ Intelligence │ │   Analysis   │
+    └─────┬───────┘ └──────┬───────┘ └──────┬───────┘
+          │                │                │
+          ▼                ▼                ▼
+    ┌──────────────────────────────────────────────┐
+    │  Data Sources (APIs)                         │
+    │  • ClinicalTrials.gov (trials)              │
+    │  • PubMed Entrez (publications)             │
+    │  • Tavily Search (market news)              │
+    └──────────────────────────────────────────────┘
+          │                │                │
+          └────────────────┼────────────────┘
+                           │
+                ┌──────────┴──────────┐
+                │                     │
+                ▼                     ▼
+          ┌─────────────┐      ┌─────────────┐
+          │   Agent 4   │      │   Agent 5   │
+          │     ICP     │      │  Messaging  │
+          │ Definition  │      │ & Position  │
+          └─────┬───────┘      └──────┬──────┘
+                │                     │
+                └──────────┬──────────┘
+                           │
+                ┌──────────┴──────────┐
+                ▼                     ▼
+          ┌──────────────────────────────┐
+          │   Shared GTMState Object     │
+          │  (Single Source of Truth)    │
+          │  • market_data               │
+          │  • payer_data                │
+          │  • competitor_data           │
+          │  • icp_profile               │
+          │  • messaging_data            │
+          │  • agents_completed          │
+          │  • progress_percentage       │
+          └──────────────┬───────────────┘
+                         │
+                         ▼
+                  ┌────────────────┐
+                  │   Agent 6      │
+                  │  GTM Synthesis │
+                  │  (Final Brief) │
+                  └────────┬───────┘
+                           │
+                ┌──────────┴──────────┐
+                │                     │
+                ▼                     ▼
+           ┌─────────────────┐  ┌──────────────┐
+           │  Streamlit UI   │  │ PDF Generator│
+           │  (7 Tabs + Q&A) │  │ (ReportLab) │
+           └─────────────────┘  └──────────────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │ MSL Brief    │
+                    │ (Download)   │
+                    └──────────────┘
 ```
 
-### State Management (Pydantic TypedDict)
+### 6-Agent Parallel Orchestration
+
+```
+Agent 1: Market Research        ──┐
+Agent 2: Payer Intelligence     ──┼→ Shared GTMState ──→ Agent 6: GTM Synthesis
+Agent 3: Competitor Analysis    ──┤
+Agent 4: ICP Definition         ──┤
+Agent 5: Messaging & Positioning──┘
+
+Execution: Concurrent (not sequential)
+Duration: ~90 seconds total
+State Management: Immutable single source of truth
+```
+
+### Agent Responsibilities
+
+| Agent | Input | Output | Tools Used |
+|-------|-------|--------|-----------|
+| **Market Research** | Drug name, indication | TAM/SAM/SOM, trials, publications, patient population | ClinicalTrials.gov API, PubMed Entrez, Tavily |
+| **Payer Intelligence** | Drug name, indication | HTA status, QALY thresholds, reimbursement criteria | Tavily search, regulatory databases |
+| **Competitor Analysis** | Drug name, indication | Competitor positioning, market share, pricing | ClinicalTrials.gov, Tavily, competitive research |
+| **ICP Definition** | Market data, competitor data | Buyer personas, decision-makers, urgency triggers | Synthesis from previous agents |
+| **Messaging & Positioning** | Competitor data, ICP, market data | Positioning statements, objection responses, "Do Not Say" guardrails | Claude synthesis |
+| **GTM Synthesis** | All previous agent outputs | Executive summary, strategy, timeline, success metrics | Claude synthesis |
+
+### State Machine (GTMState)
+
 ```python
-class GTMState(TypedDict):
+class GTMState:
+    # User Input
     drug_name: str
     indication: str
+    
+    # Agent Outputs
     market_data: MarketResearchData
     payer_data: PayerIntelligenceData
     competitor_data: CompetitorAnalysisData
     icp_profile: ICPProfile
     messaging_data: MessagingData
     final_gtm_strategy: GTMStrategy
+    
+    # Metadata
+    workflow_id: str
+    started_at: str
+    completed_at: Optional[str]
     agents_completed: List[str]
+    current_agent: Optional[str]
+    agent_status: str
     progress_percentage: int
+    errors: List[Dict]
 ```
 
-Every agent reads from and writes to this single source of truth.
+**Key Design Principle:** All agents read from and write to this single object. No data duplication, hallucination prevention, single source of truth.
+
+### Data Sources Integration
+
+```
+┌────────────────────────────────┐
+│   ClinicalTrials.gov API v2    │
+│  • Phase 2/3 active trials     │
+│  • Enrollment status           │
+│  • Primary endpoints           │
+└────────────────────────────────┘
+              │
+              ▼
+┌────────────────────────────────┐
+│      PubMed Entrez API         │
+│  • Recent publications         │
+│  • Citation metadata           │
+│  • Abstract text               │
+└────────────────────────────────┘
+              │
+              ▼
+┌────────────────────────────────┐
+│    Tavily Search API           │
+│  • Market news                 │
+│  • FDA updates                 │
+│  • Company announcements       │
+└────────────────────────────────┘
+              │
+              ▼
+        ┌─────────────┐
+        │   Agents    │
+        │  Process &  │
+        │   Synthesize│
+        └─────────────┘
+```
+
+### Real-Time Streaming & UI Updates
+
+```
+Agent 1 Completes (17%)
+    ↓ Write to GTMState
+    ↓ Callback fires
+    ↓ Streamlit progress_bar updated
+    ↓ status_text shows "✅ Market Research complete (17%)"
+
+Agent 2 Completes (33%)
+    ↓ Same flow
+    ...
+Agent 6 Completes (100%)
+    ↓ Final brief rendered in 7 tabs
+```
+
+**Technology:** Streamlit's real-time WebSocket layer decouples from the blocking event loop, enabling live UI updates during concurrent agent execution.
+
+### Deployment Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│          GitHub Repository (Main Branch)        │
+│  (Automatically triggers Railway deployment)    │
+└────────────────────┬────────────────────────────┘
+                     │
+                     ▼
+          ┌──────────────────────┐
+          │   Railway.app        │
+          │  (Production Server) │
+          └──────────────────────┘
+                     │
+        ┌────────────┼────────────┐
+        │            │            │
+        ▼            ▼            ▼
+   ┌────────┐  ┌────────┐  ┌─────────────┐
+   │Streamlit│  │LangGraph│  │API Clients  │
+   │Frontend │  │Backend  │  │(Anthropic,  │
+   │         │  │         │  │ Tavily)     │
+   └────────┘  └────────┘  └─────────────┘
+        │            │
+        └────────────┼────────────┐
+                     │            │
+                     ▼            ▼
+            ┌──────────────┐  ┌──────────┐
+            │  .env Secrets│  │ Logs     │
+            │ (API Keys)   │  │          │
+            └──────────────┘  └──────────┘
+```
+
+### Error Handling & Resilience
+
+```
+Agent Execution
+    │
+    ├─→ Success → Write to GTMState
+    │
+    ├─→ API Timeout → Fallback data + Log error
+    │
+    ├─→ Invalid JSON → Extract + Parse + Log warning
+    │
+    ├─→ Callback Error → Log (doesn't stop workflow)
+    │
+    └─→ Agent Error → Add to state.errors, continue
+```
+
+All agents are fail-safe. Failures don't crash the pipeline.
 
 ---
 
-## 🚀 Quick Start (Local Development)
-
-### Prerequisites
-- Python 3.11+
-- API Keys: `ANTHROPIC_API_KEY` (from Claude), `TAVILY_API_KEY` (from Tavily)
-- Optional: Docker Desktop
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/LifeSciForge/Evidentia.git
-cd Evidentia
-
-# Create environment file
-cp .env.example .env
-
-# Add your API keys to .env
-# ANTHROPIC_API_KEY=sk-ant-...
-# TAVILY_API_KEY=tvly-...
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Run the Streamlit app
-streamlit run streamlit_app.py
-```
-
-**Access:** http://localhost:8501
-
-### Docker (Optional)
-```bash
-docker-compose up
-# Access: http://localhost:8501
-```
-
----
-
-## 📖 Usage Guide
-
-### Step 1: Select Hospital & Physician
-```
-Hospital Dropdown → MD Anderson Cancer Center
-Doctor Dropdown   → Dr. Roy S. Herbst (Thoracic Medical Oncology)
-```
-
-### Step 2: Enter Drug Information
-```
-Drug Name:    sotorasib
-Indication:   KRAS-mutant colorectal cancer
-```
-
-### Step 3: Generate Brief
-Click **🚀 Generate MSL Brief**
-
-Watch the progress bar as 6 agents run in parallel (~90 seconds)
-
-### Step 4: Review Intelligence Across 9 Tabs
-- 💬 **Talking Points** — Lead with these key messages
-- ⚠️ **Objections** — Prepare for these questions
-- ❓ **Discovery** — Ask these to uncover needs
-- 📊 **Clinical Evidence** — Know the trial landscape
-- 💰 **Reimbursement** — Understand payer positioning
-- 🏆 **Competitors** — Know your competitive advantages
-- 📋 **Final Brief** — Pre-call summary
-- 💬 **Ask Evidentia** — Get real-time Q&A answers
-- 📥 **Download** — Export for team sharing
-
-### Step 5: Download & Share
-Export as JSON for offline reference, team training, or CRM integration
-
----
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| **Agent Framework** | LangGraph | 1.1.3 |
-| **LLM Chain** | LangChain | 1.2.13 |
-| **LLM** | Claude Sonnet 4 (Anthropic API) | latest |
-| **Frontend** | Streamlit | 1.55.0 |
-| **State Management** | Pydantic | 2.12.5 |
-| **API Backend** | FastAPI | 0.135.1 |
-| **Data Sources** | ClinicalTrials.gov API, PubMed (Entrez), Tavily Search | - |
-| **Database** | PostgreSQL (optional) | 14+ |
-| **Deployment** | Docker, Railway.app | - |
+| Agent Framework | LangGraph | 1.1.3 |
+| LLM Chain | LangChain | 1.2.13 |
+| LLM | Claude Sonnet 4 (Anthropic API) | latest |
+| Frontend | Streamlit | 1.55.0 |
+| State Management | Pydantic | 2.12.5 |
+| PDF Generation | ReportLab | 4.4.10 |
+| Data Sources | ClinicalTrials.gov, PubMed, Tavily | APIs |
+| Deployment | Railway.app + Docker | - |
 
 ---
 
-## 📈 Performance Metrics
+## Performance
 
 | Metric | Value |
 |--------|-------|
-| **Brief Generation Time** | ~90 seconds |
-| **Agents Processed** | 6/6 (100%) |
-| **Data Sources Queried** | 3 (Trials, PubMed, News) |
-| **Output Tabs** | 9 (Interactive + Q&A) |
-| **Production Deployment** | Railway.app (fully functional) |
-| **Average Response Quality** | 4.2/5 (user feedback) |
+| Brief generation time | ~90 seconds |
+| Agents processing in parallel | 6/6 (100%) |
+| Output tabs | 7 interactive + Q&A |
+| Data sources queried | 3 (Trials, Publications, News) |
+| PDF export | Mobile-friendly, printable |
+| Production deployment | Live on Railway.app |
 
 ---
 
-## 🎯 Target Users
+## Target Users
 
-### Primary Users
-- **Medical Science Liaisons (MSLs)** at large pharma companies
-- Field reps at oncology/specialty pharma companies
+### Primary
+- Medical Science Liaisons at large pharma companies
+- Field-based clinical experts requiring pre-call prep
 
 ### Target Companies
-- **Large Pharma:** Roche, Merck, AstraZeneca, Novartis, Amgen, Bristol Myers Squibb, Eli Lilly
-- **Commercial Teams:** Need consistent, data-backed messaging
-- **Medical Affairs:** MSL onboarding and field readiness
+- Large pharma (Roche, Merck, AstraZeneca, Novartis, Amgen, BMS, Eli Lilly)
+- Specialty pharma with oncology/immunology focus
+- Commercial teams requiring consistent messaging
 
-### Secondary Users
-- Chief Medical Officers (field strategy & QC)
-- Market Access Leaders (payer intelligence)
-- Commercial Operations (launch readiness metrics)
-
----
-
-## 💼 Business Value Realization
-
-| Scenario | Value |
-|----------|-------|
-| **Single MSL** | 8 hours saved/month × $100/hour = $800/month = $9.6K/year |
-| **Regional Team (30 MSLs)** | 30 × $9.6K = **$288K/year** |
-| **Company-wide (150 MSLs)** | 150 × $9.6K = **$1.44M/year** |
-| **Enterprise (3 regions)** | 450 MSLs × $9.6K = **$4.32M/year** |
-
-Add: Faster new MSL ramp-up, consistent messaging, improved call quality.
+### Use Cases
+- Pre-call physician intelligence (primary)
+- New MSL onboarding (day-1 productivity, no ramp-up)
+- Field team consistency (standardized talking points)
+- Compliance training (Do Not Say guardrails)
 
 ---
 
-## 🚀 Deployment
+## Phase 2 Roadmap
 
-### Live Production
-**[Visit Live App: evidentia-production-73a5.up.railway.app](https://evidentia-production-73a5.up.railway.app)**
+### Current Gaps (Honest)
+The product pitch often includes "prescribing patterns," "formulary restrictions," and "competitor moves," but these require enterprise data integrations not yet built.
 
-Fully functional with real hospital database and live agent orchestration.
+### Phase 2 (Planned, Not Built)
+- CRM integration (Salesforce API) — real prescribing patterns, patient volumes
+- Payer formulary feeds (NICE, EMA, ICER) — real access barrier data
+- Real-time competitor tracking — clinical event triggers, FDA decisions
+- Claims data integration — patient journey mapping
 
-### Local Development
+---
+
+## Deployment
+
+### Production
+**[Live App: evidentia-production-73a5.up.railway.app](https://evidentia-production-73a5.up.railway.app)**
+
+Fully functional, live updates on every GitHub push.
+
+### Local
 ```bash
 streamlit run streamlit_app.py --server.port 8501
 ```
 
-### Docker Deployment
+### Docker
 ```bash
 docker build -t evidentia .
 docker run -p 8501:8501 evidentia
 ```
----
-
-## 📚 Architecture Deep Dives
-
-### 1. State Machine Pattern
-Instead of passing data between functions (error-prone, hard to debug), all agents
-read from and write to a single `GTMState` object. This prevents stale data and hallucinations.
-
-### 2. Parallel Agent Execution
-LangGraph enables concurrent execution. Instead of sequential API calls (45+ min of waiting),
-6 agents run in parallel, each querying their specialized data source.
-
-### 3. Tool Use (Not Hardcoded APIs)
-Agents don't have hardcoded API calls. Instead, they use LangChain Tools and decide dynamically
-which APIs to call based on the input. This makes the system adaptive.
-
-### 4. RAG for Evidence, Synthesis for Strategy
-- **RAG layer:** PubMed evidence retrieval (ChromaDB vector store)
-- **Synthesis layer:** Claude generates strategy from RAG results + competitive data
-
-### 5. Streaming Output
-Results stream to Streamlit UI in real-time. Users see partial output within 5 seconds,
-full brief within 90. Batch processing would mean a silent 90-second wait.
 
 ---
 
-## 🌟 Key Decisions & Why
+## Why LangGraph
+
+### Problem with Sequential APIs
+- Search PubMed (30s) + wait
+- Search trials (20s) + wait
+- Search news (15s) + wait
+- Synthesize (20s)
+- **Total:** 85+ seconds of mostly waiting
+
+### Solution: Parallel Orchestration
+6 agents run concurrently. Each queries its specialized API. Single shared state prevents hallucinations.
+**Total:** 90 seconds, end-to-end.
+
+This pattern is applicable to any pharma workflow requiring multi-domain synthesis: GTM strategy, clinical trial tracking, Market Access automation.
+
+---
+
+## Key Design Decisions
 
 ### Decision 1: LangGraph Over Simple Prompting
-**Why:** Prompting Claude to do everything at once leads to inconsistency and hallucinations.
-Multiple agents, each specialized in their domain, orchestrated via state machine = high quality, repeatable results.
+One large prompt to Claude produces inconsistent, hallucinated output. Multiple specialized agents with a shared state machine produce reliable, repeatable results.
 
 ### Decision 2: Parallel Execution Over Sequential
-**Why:** Sequential would require 45+ minutes. Parallel brings it to 90 seconds.
-Risk: Complexity increases. Mitigation: Single GTMState source of truth prevents inconsistencies.
+Sequential would require 45+ minutes. Parallel brings it to 90 seconds. Complexity is managed via immutable shared state.
 
 ### Decision 3: Streamlit Over React
-**Why:** For rapid MVP development and ease of deployment. Streamlit handles real-time streaming beautifully.
-Production: Could migrate to React + FastAPI backend for higher throughput.
+Rapid prototyping, beautiful UI, real-time streaming. Production could migrate to React + FastAPI for higher throughput.
 
 ### Decision 4: Railway.app Deployment
-**Why:** Simple, free tier available, integrates with GitHub. Easy for recruiters to click and test live.
+Free tier, GitHub integration, easy for recruiters to click and test live.
 
 ---
 
-## 📈 Roadmap
-
-### ✅ Completed
-- [x] Core 6-agent LangGraph system
-- [x] Streamlit UI with 9 tabs
-- [x] Real US hospital database
-- [x] Ask Evidentia (Claude Q&A)
-- [x] Production deployment (Railway.app)
-- [x] GitHub open source
-
-### 🔜 Coming
-- [ ] CSV and PDF export (currently JSON only)
-- [ ] Real-time collaboration (multiple MSLs editing same brief)
-- [ ] Mobile app (iOS/Android)
-- [ ] Salesforce CRM integration (push briefs directly to CRM)
-- [ ] Multi-language support (French, German for EU teams)
-- [ ] HTA decision mapping (NICE, EMA, ICER integration)
-
----
-
-## 🤝 Contributing
+## Contributing
 
 This is a portfolio project showcasing:
-- **LangGraph multi-agent orchestration** - Production patterns for agentic systems
-- **Pharma domain expertise** - 11+ years in clinical, regulatory, and commercial operations
-- **Full-stack AI development** - Frontend (Streamlit) → Backend (FastAPI) → Deployment (Docker)
-- **State machine architecture** - Prevention of hallucinations through immutable state
-- **Production deployment** - Not just notebooks, but live systems
+- LangGraph multi-agent orchestration (production patterns)
+- Pharma domain expertise (11+ years in clinical development, regulatory, commercial)
+- Full-stack AI development (Streamlit frontend → LangGraph backend → Docker deployment)
+- State machine architecture (prevention of hallucinations)
+- Production deployment (not just notebooks)
 
-Contributions welcome! Feel free to:
+Contributions welcome:
 - Fork the repo
-- Submit PRs with improvements
-- Open issues with questions or suggestions
-- Suggest new data sources or features
+- Submit PRs
+- Open issues with feature requests
+- Suggest new data sources
 
 ---
 
-## 📝 License
+## Author
 
-MIT License - See LICENSE file for details
----
-
-## 👤 Author
-
-**Pranjal Das** - CSO @ Pienomial | Agentic AI Builder  
-- **GitHub:** [@LifeSciForge](https://github.com/LifeSciForge)
-- **LinkedIn:** [pranjal-das1](https://linkedin.com/in/pranjal-das1)
-- **Portfolio:** 6 production AI systems, LangGraph architectures, RAG pipelines, $2M+ pipeline influenced
+**Pranjal Das** —  Agentic AI Builder
+- GitHub: [@LifeSciForge](https://github.com/LifeSciForge)
+- LinkedIn: [pranjal-das1](https://linkedin.com/in/pranjal-das1)
+- 11+ years pharma | $2M+ pipeline influenced | 6+ production AI systems
 
 ---
 
-## 🙏 Acknowledgments
+## License
 
-- **Claude API (Anthropic)** - LLM backbone for synthesis
-- **LangGraph (LangChain)** - Multi-agent orchestration framework
-- **Streamlit** - Beautiful, simple UI framework
-- **ClinicalTrials.gov, PubMed, Tavily** - Data sources
-- **Pharma teams** - Domain feedback and real-world use cases
+MIT License — See LICENSE file for details
 
 ---
-Let's build the future of pharmaceutical AI together! 🔬
+
+Let's build the future of pharmaceutical AI.
