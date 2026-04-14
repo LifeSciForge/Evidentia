@@ -41,6 +41,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Force full-width layout on production
+st.markdown("""
+<style>
+    .main { max-width: 100% !important; padding: 0 2rem; }
+    .block-container { max-width: 100% !important; padding-left: 1rem !important; padding-right: 1rem !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # Global CSS — Inter font, professional pharma palette, clean tab navigation
 st.markdown("""
 <style>
