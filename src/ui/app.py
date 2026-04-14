@@ -392,7 +392,7 @@ def main():
     st.markdown("""
     <div class="ev-page-header">
         <h1 style="font-size: 48px; font-weight: bold; color: #003366; letter-spacing: 2px; margin: 20px 0;">Evidentia</h1>
-        <p class="ev-brand-subtitle">MSL Pre-Call Intelligence Platform</p>
+        <p class="ev-brand-subtitle">Clinical Pre-Call Intelligence for Medical Science Liaisons</p>
     </div>
     <hr class="ev-divider">
     """, unsafe_allow_html=True)
@@ -401,8 +401,16 @@ def main():
     # SIDEBAR: Hospital & Doctor Selection + Drug Input
     # ========================================================================
     with st.sidebar:
-        st.markdown("**Call Planning**")
-        st.caption("Select your target and drug focus")
+        st.markdown("**MSL Call Planning**")
+        st.caption("Evidence-based pre-call preparation for Medical Science Liaisons")
+        st.markdown("---")
+        st.warning(
+            "⚠️ **For MSLs only.**\n\n"
+            "This platform is designed for Medical Science Liaisons engaged in "
+            "non-promotional scientific exchange.\n\n"
+            "Field sales representatives should contact their sales operations team "
+            "for rep-specific briefing tools."
+        )
         st.markdown("---")
         
         # Hospital Selection
@@ -462,33 +470,32 @@ def main():
         
         st.markdown("---")
         
-        # Info panel - Structured better
+        # Info panel — MSL Pre-Call Prep Workflow
         st.markdown("---")
-        st.markdown("**How Evidentia Works**")
+        st.markdown("**MSL Pre-Call Prep Workflow**")
         st.markdown("""
-**1️⃣ Select hospital & doctor**
-- Choose your target hospital
-- Select the physician to call
+**1️⃣ Physician research**
+- Select hospital and KOL
+- Review their publication and trial history
 
-**2️⃣ Enter drug information**
-- Drug name (e.g., ivonescimab)
-- Indication (e.g., NSCLC)
+**2️⃣ Clinical evidence review**
+- Active trials and PubMed literature
+- Market landscape and patient population data
 
-**3️⃣ Generate MSL Brief**
-- Click the button
-- Wait ~90 seconds
+**3️⃣ Discovery planning**
+- Tiered questions to understand unmet need
+- Tailored to the KOL's likely patient population
 
-**4️⃣ Review brief**
-- 9 interactive tabs
-- Talking points & objections
-- Discovery questions
+**4️⃣ Objection preparation**
+- Anticipated clinical questions from this KOL
+- Evidence-backed, peer-to-peer response guidance
 
-**5️⃣ Ask Evidentia**
-- Natural language Q&A
-- Get real-time guidance
+**5️⃣ Competitive context**
+- Affirmative positioning vs established agents
+- Focus on what the drug uniquely offers patients
 
-**6️⃣ Download**
-- Save as JSON for offline use
+**6️⃣ Download brief**
+- PDF for offline reference before the call
         """)
     
     # ========================================================================
@@ -537,7 +544,7 @@ def run_workflow(drug_name: str, indication: str, hospital: str, doctor: str):
         st.markdown("**Generating Intelligence Brief**")
         
         status_text = st.empty()
-        progress_bar = st.progress(0)
+        progress_bar = st.progress(0.0)
         
         try:
             # Create workflow
@@ -570,12 +577,21 @@ def run_workflow_sync(workflow, drug_name, indication, status_text, progress_bar
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    def make_callback(status_text, progress_bar):
+        def callback(agent_name, agents_completed, pct):
+            status_text.success(f"✅ {agent_name} complete ({pct}%)")
+            progress_bar.progress(pct / 100)
+        return callback
+
     try:
         result = loop.run_until_complete(
-            workflow.run(drug_name, indication,
-                         current_doctor=doctor, current_hospital=hospital)
+            workflow.run(
+                drug_name, indication,
+                current_doctor=doctor, current_hospital=hospital,
+                progress_callback=make_callback(status_text, progress_bar)
+            )
         )
-        progress_bar.progress(100)
+        progress_bar.progress(1.0)
         status_text.success("All intelligence agents completed!")
         return result
     finally:
@@ -641,13 +657,12 @@ def display_msl_results(state, hospital, doctor):
     </div>
     """, unsafe_allow_html=True)
 
-    # Tab navigation (8 tabs — Ask Evidentia merged into Objections tab)
+    # Tab navigation (7 tabs)
     tabs = st.tabs([
         "Talking Points",
         "Objections & Questions",
         "Discovery Questions",
         "Clinical Evidence",
-        "Reimbursement",
         "Competitive Position",
         "Final Brief",
         "Download Brief"
@@ -666,15 +681,12 @@ def display_msl_results(state, hospital, doctor):
         display_clinical_evidence_section(state)
 
     with tabs[4]:
-        display_reimbursement_section(state)
-
-    with tabs[5]:
         display_competitive_section(state)
 
-    with tabs[6]:
+    with tabs[5]:
         display_final_brief_section(state)
 
-    with tabs[7]:
+    with tabs[6]:
         display_download_section(state)
 
 
@@ -2153,13 +2165,19 @@ def fallback_qa_answer(question: str, state) -> str:
 
 def display_download_section(state):
     """Display download options for MSL brief"""
-    
+    from src.service.generators.pdf_generator import generate_brief_pdf
+
     st.subheader("📥 Download MSL Brief")
     st.markdown("*Save and share your pre-call intelligence brief*")
-    
+
+    drug_name = getattr(state, "drug_name", "drug") or "drug"
+    doctor = st.session_state.get("current_doctor", "") or ""
+    hospital = st.session_state.get("current_hospital", "") or ""
+    date_str = datetime.now().strftime("%Y%m%d")
+
     # Generate download options
     col1, col2, col3 = st.columns(3)
-    
+
     # JSON Export
     with col1:
         try:
@@ -2167,20 +2185,35 @@ def display_download_section(state):
             st.download_button(
                 label="📄 Download JSON",
                 data=json_data,
-                file_name=f"evidentia_msl_brief_{state.drug_name}_{datetime.now().strftime('%Y%m%d')}.json",
+                file_name=f"evidentia_msl_brief_{drug_name}_{date_str}.json",
                 mime="application/json",
                 use_container_width=True
             )
         except Exception as e:
             st.error(f"Error generating JSON: {str(e)}")
-    
-    # CSV Export (Talking Points)
+
+    # CSV Export (Talking Points) — still coming soon
     with col2:
         st.info("📊 CSV export\nComing soon")
-    
+
     # PDF Report
     with col3:
-        st.info("📝 PDF report\nComing soon")
+        try:
+            pdf_bytes = generate_brief_pdf(
+                state=state,
+                drug_name=drug_name,
+                hospital=hospital,
+                physician=doctor,
+            )
+            st.download_button(
+                label="📝 Download PDF Brief",
+                data=pdf_bytes,
+                file_name=f"evidentia_msl_brief_{drug_name}_{date_str}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
+        except Exception as e:
+            st.error(f"Error generating PDF: {str(e)}")
     
     st.markdown("---")
     

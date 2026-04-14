@@ -3,7 +3,8 @@ GTM Workflow - Fixed for async execution with proper state handling
 """
 
 from langgraph.graph import StateGraph, END
-from typing import Dict, Any
+from typing import Callable, Dict, Any, List, Optional
+from dataclasses import fields as dataclass_fields
 from src.schema.gtm_state import GTMState
 from src.agents.gtm_agents.market_research_agent import market_research_agent
 from src.agents.gtm_agents.payer_intelligence_agent import payer_intelligence_agent
@@ -58,7 +59,23 @@ class GTMWorkflow:
         indication: str,
         current_doctor: str = None,
         current_hospital: str = None,
+        progress_callback: Optional[Callable[[str, List[str], int], None]] = None,
     ) -> GTMState:
+        """
+        Run the full GTM workflow.
+
+        Args:
+            drug_name: Drug being analysed.
+            indication: Disease indication.
+            current_doctor: Optional KOL name for MSL talking points.
+            current_hospital: Optional institution name.
+            progress_callback: Optional callable invoked after each agent
+                completes.  Signature:
+                    callback(agent_name: str,
+                             agents_completed: List[str],
+                             progress_percentage: int) -> None
+                Runs on the event-loop thread — keep it non-blocking.
+        """
         logger.info(f"Starting GTM Workflow for {drug_name} in {indication}")
 
         initial_state = GTMState(
@@ -67,24 +84,54 @@ class GTMWorkflow:
             current_doctor=current_doctor,
             current_hospital=current_hospital,
         )
-        
+
         try:
-            logger.info("⏳ Executing workflow (async)...")
-            result = await self.app.ainvoke(initial_state)
-            
-            # Convert dict result back to GTMState if needed
-            if isinstance(result, dict):
-                logger.info("Converting dict result back to GTMState...")
-                final_state = GTMState(**result)
-            else:
-                final_state = result
-            
+            logger.info("⏳ Executing workflow (async, streaming)...")
+            final_state = initial_state
+            seen_agents: List[str] = []
+
+            # stream_mode="values" yields the full state after every node.
+            async for snapshot in self.app.astream(
+                initial_state, stream_mode="values"
+            ):
+                # LangGraph may return a raw dict or a GTMState instance.
+                # Filter to known dataclass fields to avoid TypeError from
+                # any internal LangGraph metadata keys in the snapshot dict.
+                if isinstance(snapshot, dict):
+                    known = {f.name for f in dataclass_fields(GTMState)}
+                    current_state = GTMState(**{k: v for k, v in snapshot.items() if k in known})
+                else:
+                    current_state = snapshot
+
+                final_state = current_state
+
+                # Detect which agent just completed by comparing lists.
+                newly_done = [
+                    a for a in current_state.agents_completed
+                    if a not in seen_agents
+                ]
+                if newly_done and progress_callback:
+                    agent_name = newly_done[-1]
+                    try:
+                        progress_callback(
+                            agent_name,
+                            list(current_state.agents_completed),
+                            current_state.progress_percentage,
+                        )
+                    except Exception as cb_exc:
+                        # Never let a UI callback crash the workflow.
+                        logger.warning(
+                            f"progress_callback raised an error: {cb_exc}"
+                        )
+
+                seen_agents = list(current_state.agents_completed)
+
             logger.info("✅ Workflow completed successfully")
             logger.info(f"📊 Agents completed: {final_state.agents_completed}")
             logger.info(f"🎯 Progress: {final_state.progress_percentage}%")
-            
+
             return final_state
-            
+
         except Exception as e:
             logger.error(f"❌ Workflow execution failed: {str(e)}")
             initial_state.add_error("Workflow", str(e))

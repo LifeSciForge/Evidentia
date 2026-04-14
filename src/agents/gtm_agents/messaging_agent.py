@@ -242,7 +242,12 @@ async def messaging_agent(state: GTMState) -> GTMState:
         llm = get_claude()
         
         positioning_prompt = f"""
-You are a pharma brand positioning strategist. Create a comprehensive positioning framework:
+You are a pharma Medical Science Liaison (MSL) communication strategist.
+Your job is to help MSLs make the affirmative case for {state.drug_name} — not to criticise competitors.
+
+RULE: Never lead with a competitor's weakness. Always lead with {state.drug_name}'s strengths.
+RULE: When a competitor is well-established, acknowledge it, then pivot to what {state.drug_name} uniquely offers.
+RULE: Competitive statements must end on {state.drug_name}'s benefit, not on a competitor's problem.
 
 Drug: {state.drug_name}
 Indication: {state.indication}
@@ -250,7 +255,7 @@ Indication: {state.indication}
 Market Context:
 {market_summary}
 
-Competitive Context:
+Competitive Landscape (for context only — do NOT criticise these drugs):
 {competitor_summary}
 
 ICP Context:
@@ -259,50 +264,52 @@ ICP Context:
 Payer Context:
 {payer_summary}
 
-Please create a positioning framework with:
+Create a positioning framework with:
 
 1. Category Definition:
-   - How do we define this therapeutic category?
-   - What is the unmet need we address?
-   
-2. Positioning Statement:
-   - Our unique position in the market
-   - Why we matter to customers
-   
-3. Key Differentiators (vs competitors):
-   - Clinical
-   - Commercial
-   - Economic/Payer value
-   
+   - What unmet clinical need does {state.drug_name} address?
+   - What patient population benefits most?
+
+2. Positioning Statement (one sentence):
+   - What {state.drug_name} uniquely does for patients
+   - Must be affirmative — what we offer, not what others lack
+
+3. Key Differentiators — affirmative framing only:
+   - Mechanism of action advantage (what it uniquely targets or how)
+   - Efficacy in specific patient sub-populations where {state.drug_name} has an edge
+   - Safety or tolerability profile that benefits patients
+   Each differentiator must be a complete sentence starting with "{state.drug_name}..."
+
 4. Value Propositions by Persona:
-   - For CCO: Commercial impact
-   - For Market Access: Payer value
-   - For HEOR: Health economics benefit
-   - For Medical Affairs: Clinical evidence
-   
-5. Competitive Messaging:
-   - "vs Competitor A" positioning
-   - "vs Competitor B" positioning
-   - "vs Competitor C" positioning
-   
-6. Messaging Pillars (3-5 core themes):
-   - Pillar 1: ...
-   - Pillar 2: ...
-   
-7. Common Objections & Responses:
-   - Objection 1: Response strategy
-   - Objection 2: Response strategy
+   - For CCO: revenue and market access opportunity
+   - For Market Access: payer value story
+   - For HEOR: health economics evidence
+   - For Medical Affairs: clinical evidence quality
+
+5. Competitive Bridge Statements (one per major competitor):
+   Format: "Yes, [competitor] is [acknowledged strength]. And {state.drug_name} [unique strength that adds value for [specific patient population]."
+   - Acknowledge the competitor's legitimacy first
+   - Pivot to {state.drug_name}'s complementary or additive advantage
+   - End on the patient benefit, not on the competitor's limitation
+
+6. Messaging Pillars (3 core clinical themes):
+   - Each pillar: a short clinical fact about {state.drug_name}, evidence-backed if possible
+
+7. Common Objection Responses:
+   - Format: objection -> response that acknowledges the concern then pivots affirmatively
+   - Include: "Why use {state.drug_name} when [established competitor] is proven?"
+   - Response must start with acknowledgment ("That's a fair point..."), then pivot
 
 Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
 
 Keys required:
 - category_definition (string)
 - positioning_statement (string)
-- key_differentiators (list of strings)
+- key_differentiators (list of strings, each starting with "{state.drug_name}")
 - value_propositions (object with persona names as keys)
-- competitive_vs_statements (list of strings)
+- competitive_vs_statements (list of strings, each in "Yes... And {state.drug_name}..." format)
 - messaging_pillars (list of strings)
-- common_objections (object with objection as key, response as value)
+- common_objections (object: objection string -> response string that pivots affirmatively)
 """
         
         try:
@@ -501,28 +508,30 @@ def get_default_persona_data() -> Dict[str, Any]:
 def get_default_positioning_data() -> Dict[str, Any]:
     """Return default positioning data"""
     return {
-        "category_definition": "First-in-class therapeutic solution",
-        "positioning_statement": "The premium choice for clinical efficacy and payer value",
+        "category_definition": "Addresses an unmet clinical need with a differentiated mechanism of action",
+        "positioning_statement": "Offers a distinct mechanism that provides clinical benefit in patient populations with limited current options",
         "key_differentiators": [
-            "Superior clinical efficacy",
-            "Favorable safety profile",
-            "Strong health economic value"
+            "Targets a specific pathway that current standard-of-care agents do not address",
+            "Demonstrates clinical activity in patient sub-populations where existing therapies show limited benefit",
+            "Presents a tolerability profile that supports treatment adherence in the target population"
         ],
         "value_propositions": {
-            "CCO": "Revenue upside opportunity",
-            "Market Access": "Strong payer case",
-            "HEOR": "Cost-effective solution"
+            "CCO": "Addresses a patient segment underserved by current options, creating a defensible commercial position",
+            "Market Access": "Clinical differentiation in a defined sub-population supports a distinct value story for payers",
+            "HEOR": "Efficacy in patients who progress on or are ineligible for current standard of care supports cost-effectiveness modelling",
+            "Medical Affairs": "Mechanistic and clinical evidence supports scientific exchange on a clinically meaningful difference"
         },
         "competitive_vs_statements": [
-            "vs Competitor A: Better safety profile",
-            "vs Competitor B: Superior efficacy"
+            "Yes, current standard-of-care agents are well-established. And this drug offers a complementary mechanism that may benefit patients who do not respond adequately to existing options.",
+            "Yes, established therapies have a strong evidence base. And this drug's distinct mode of action addresses a different biological driver, which may matter for specific patient sub-groups."
         ],
         "messaging_pillars": [
-            "Clinical leadership",
-            "Payer value",
-            "Patient impact"
+            "Differentiated mechanism of action targeting a clinically validated pathway",
+            "Clinical activity in patient sub-populations with limited alternatives",
+            "Tolerability data that supports sustained therapy"
         ],
         "common_objections": {
-            "What about competitor X?": "Our differentiated mechanism provides superior outcomes"
+            "Why use this when established options are proven?": "That's a fair point — established therapies work well for many patients. And for the sub-population who don't respond or who are ineligible, this drug's distinct mechanism offers a clinically meaningful alternative worth discussing.",
+            "What about the safety profile?": "The tolerability data from clinical studies is worth reviewing together — the adverse event profile is characterised and supports use in the intended patient population."
         }
     }
