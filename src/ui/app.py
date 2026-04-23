@@ -52,6 +52,13 @@ st.markdown("""
 # Global CSS — Inter font, professional pharma palette, clean tab navigation
 st.markdown("""
 <style>
+/* Force full width - Streamlit 1.55 compatible */
+.main > div { max-width: 100% !important; }
+.block-container { max-width: 100% !important; padding-left: 2rem !important; padding-right: 2rem !important; padding-top: 1rem !important; }
+div[data-testid="stMainBlockContainer"] { max-width: 100% !important; padding-left: 2rem !important; padding-right: 2rem !important; }
+div[data-testid="stAppViewBlockContainer"] { max-width: 100% !important; }
+section[data-testid="stMain"] { width: 100% !important; }
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
@@ -257,6 +264,32 @@ html, body, [class*="css"] {
 .tp-generic-pillar-num { font-size:10px; font-weight:700; color:#999999; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:2px; }
 .tp-diff-pill { display:inline-block; background:#E8F1F8; color:#003366; font-size:11px; font-weight:600; border-radius:3px; padding:3px 9px; margin:3px 4px 3px 0; }
 
+/* ── Spacing / whitespace reduction ─────────────────────────────────────── */
+.block-container {
+    padding-top: 1rem !important;
+}
+section.main > div.block-container {
+    padding-top: 1rem !important;
+}
+[data-testid="stVerticalBlock"] {
+    gap: 0.5rem !important;
+}
+[data-testid="stVerticalBlockWithBorder"] {
+    gap: 0.5rem !important;
+}
+div[data-testid="stMarkdown"] p {
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.25rem !important;
+}
+.ev-page-header {
+    padding-top: 12px !important;
+    padding-bottom: 2px !important;
+}
+.ev-meta-strip {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+}
+
 /* ── Expander overrides (Objections tab) ────────────────────────────────── */
 [data-testid="stExpander"] {
     border: 1px solid #E0E0E0 !important;
@@ -301,6 +334,7 @@ html, body, [class*="css"] {
     color: #003366 !important;
     fill: #003366 !important;
 }
+.block-container { max-width: 98% !important; padding-left: 2rem !important; padding-right: 2rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
