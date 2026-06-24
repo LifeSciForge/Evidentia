@@ -2,10 +2,37 @@
 Reusable Streamlit UI components
 """
 
+import html as _html
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
+
+_CHIP_TIERS = {"verified", "web", "filing", "modeled", "unavailable"}
+
+
+def source_chip_html(tier: str, label: str, url: str | None = None, note: str | None = None) -> str:
+    """Build a provenance chip as an HTML string.
+
+    tier: one of verified | web | filing | modeled | unavailable (unknown -> unavailable).
+    Renders an <a> when a url is given, otherwise a <span>. All text is HTML-escaped.
+    """
+    safe_tier = tier if tier in _CHIP_TIERS else "unavailable"
+    cls = f"ev-chip ev-chip-{safe_tier}"
+    safe_label = _html.escape(label or "")
+    title = f' title="{_html.escape(note)}"' if note else ""
+    if url:
+        safe_url = _html.escape(url, quote=True)
+        return (
+            f'<a class="{cls}" href="{safe_url}" target="_blank" '
+            f'rel="noopener noreferrer"{title}>{safe_label} ↗</a>'
+        )
+    return f'<span class="{cls}"{title}>{safe_label}</span>'
+
+
+def source_chip(tier: str, label: str, url: str | None = None, note: str | None = None) -> None:
+    """Render a provenance chip inline."""
+    st.markdown(source_chip_html(tier, label, url=url, note=note), unsafe_allow_html=True)
 
 
 def market_sizing_waterfall(tam, sam, som):
