@@ -4,7 +4,7 @@ Searches for HTA decisions, reimbursement criteria, and payer feedback
 """
 
 from typing import Dict, Any
-from src.schema.gtm_state import GTMState, PayerIntelligenceData, unavailable
+from src.schema.gtm_state import GTMState, PayerIntelligenceData, unavailable, web_source
 from src.service.tools.pubmed_tools import search_hta_pubs
 from src.service.tools.tavily_tools import tavily_search, search_payer_coverage, search_pricing_information
 from src.core.llm import get_claude
@@ -55,22 +55,26 @@ async def payer_intelligence_agent(state: GTMState) -> GTMState:
         )
         
         coverage_insights = ""
+        _payer_top_url: str | None = None
         if payer_coverage.get("success"):
             coverage_insights = payer_coverage.get("answer", "")
+            _payer_top_url = payer_coverage.get("top_url")  # from tool, never LLM
             logger.info("✅ Payer coverage data retrieved")
         else:
             logger.warning("⚠️ Payer coverage search failed")
-        
+
         # Step 3: Search pricing information
         logger.info("💵 Searching pricing information...")
         pricing_result = search_pricing_information(
             drug_name=state.drug_name,
             max_results=5
         )
-        
+
         pricing_insights = ""
+        _pricing_top_url: str | None = None
         if pricing_result.get("success"):
             pricing_insights = pricing_result.get("answer", "")
+            _pricing_top_url = pricing_result.get("top_url")  # from tool, never LLM
             logger.info("✅ Pricing data retrieved")
         else:
             logger.warning("⚠️ Pricing search failed")
@@ -143,6 +147,11 @@ Keys required:
                 if result.valid:
                     payer_data_dict = result.data.model_dump()
                     logger.info("✅ Payer intelligence synthesized successfully")
+                    # Attach REAL provenance from tool urls (never from LLM text)
+                    if _payer_top_url:
+                        state.sources["payer.hta_status"] = web_source(_payer_top_url)
+                    if _pricing_top_url:
+                        state.sources["payer.pricing_ceiling"] = web_source(_pricing_top_url)
                 else:
                     logger.warning(f"⚠️ Validation errors: {result.errors}")
                     payer_data_dict = get_default_payer_data()
