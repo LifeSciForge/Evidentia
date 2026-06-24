@@ -3,10 +3,11 @@ Synthesis Agent
 Assembles all agent outputs into final GTM strategy
 """
 
+import asyncio
 from typing import Dict, Any
 from src.schema.gtm_state import GTMState, GTMStrategy, unavailable
 from src.schema.gtm_output import GTMOutputDocument
-from src.core.llm import get_claude
+from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, StrategyResponse
 from src.schema.agent_messages import create_agent_message, MESSAGE_TYPES
@@ -157,7 +158,7 @@ Keys required:
 """
         
         try:
-            response = llm.invoke(strategy_prompt)
+            response = await asyncio.to_thread(invoke_with_retry, llm, strategy_prompt)
             response_text = response.content
             try:
                 raw = extract_json_from_text(response_text)
