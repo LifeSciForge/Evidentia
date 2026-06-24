@@ -3,11 +3,12 @@ Competitor Analysis Agent
 Analyzes competitor landscape, positioning, and market threats
 """
 
+import asyncio
 from typing import Dict, Any, List
 from src.schema.gtm_state import GTMState, CompetitorAnalysisData, CompetitorData, unavailable, web_source
 from src.service.tools.tavily_tools import tavily_search, search_competitor_news
 from src.service.tools.pubmed_tools import search_pubmed
-from src.core.llm import get_claude
+from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, CompetitorResponse
 
@@ -114,7 +115,7 @@ Use this exact structure:
 """
         
         try:
-            response = llm.invoke(competitor_prompt)
+            response = await asyncio.to_thread(invoke_with_retry, llm, competitor_prompt)
             response_text = response.content
             try:
                 raw = extract_json_from_text(response_text)
