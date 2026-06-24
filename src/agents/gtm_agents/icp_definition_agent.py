@@ -3,10 +3,11 @@ ICP Definition Agent
 Defines Ideal Customer Profile based on market and competitive data
 """
 
+import asyncio
 from typing import Dict, Any
 from src.schema.gtm_state import GTMState, ICPProfile, unavailable
 from src.service.tools.tavily_tools import tavily_search
-from src.core.llm import get_claude
+from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.utils.formatters import safe_join, safe_format_list
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, ICPResponse
@@ -129,7 +130,7 @@ Keys required:
 """
         
         try:
-            response = llm.invoke(icp_prompt)
+            response = await asyncio.to_thread(invoke_with_retry, llm, icp_prompt)
             response_text = response.content
             try:
                 raw = extract_json_from_text(response_text)
