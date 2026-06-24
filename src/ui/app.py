@@ -764,22 +764,12 @@ def display_msl_results(state, hospital, doctor):
         )
         return
 
-    # Check if we have any actual data
-    if not state.market_data and not state.payer_data and not state.competitor_data:
-        st.error("❌ No data found for this drug-indication combination")
-        st.warning(
-            "This could mean:\n"
-            "• The drug may not exist in public clinical trial databases\n"
-            "• It may be too early-stage (pre-clinical or Phase 1)\n"
-            "• The indication may not match trial registrations\n"
-            "• Try a different drug name or established competitor"
-        )
-        return
-
-    # Metadata strip — drug / indication / hospital / doctor / status
+    # Metadata strip — drug / indication / hospital / doctor / status + Export button
     doctor_display = (doctor or "").split("(")[0].strip() if doctor else "—"
     hospital_display = hospital or "—"
-    st.markdown(f"""
+    _meta_col, _export_col = st.columns([4, 1])
+    with _meta_col:
+        st.markdown(f"""
     <div class="ev-meta-strip">
         <div class="ev-meta-item">
             <span class="ev-meta-label">Drug</span>
@@ -803,6 +793,8 @@ def display_msl_results(state, hospital, doctor):
         </div>
     </div>
     """, unsafe_allow_html=True)
+    with _export_col:
+        _render_export_buttons(state)
 
     # ── At a glance band ─────────────────────────────────────────────────────
     lead_point, likely_objection = glance_lead_points(state)
@@ -862,37 +854,33 @@ def display_msl_results(state, hospital, doctor):
                     unsafe_allow_html=True,
                 )
 
-    # Tab navigation (7 tabs)
+    # Tab navigation (6 tabs — call flow order)
     tabs = st.tabs([
+        "Pre-Call Brief",
         "Talking Points",
         "Objections & Questions",
         "Discovery Questions",
         "Clinical Evidence",
         "Competitive Position",
-        "Final Brief",
-        "Download Brief"
     ])
 
     with tabs[0]:
-        display_talking_points_section(state)
-
-    with tabs[1]:
-        display_objection_handling_section(state)
-
-    with tabs[2]:
-        display_discovery_questions_section(state)
-
-    with tabs[3]:
-        display_clinical_evidence_section(state)
-
-    with tabs[4]:
-        display_competitive_section(state)
-
-    with tabs[5]:
         display_final_brief_section(state)
 
-    with tabs[6]:
-        display_download_section(state)
+    with tabs[1]:
+        display_talking_points_section(state)
+
+    with tabs[2]:
+        display_objection_handling_section(state)
+
+    with tabs[3]:
+        display_discovery_questions_section(state)
+
+    with tabs[4]:
+        display_clinical_evidence_section(state)
+
+    with tabs[5]:
+        display_competitive_section(state)
 
 
 # ============================================================================
@@ -2363,6 +2351,55 @@ def fallback_qa_answer(question: str, state) -> str:
     # Default
     else:
         return f"That's a great question about {state.drug_name}. Reference the brief tabs for detailed talking points, objections, clinical evidence, and reimbursement. I'm here to help you prepare for a successful call!"
+
+# ============================================================================
+# EXPORT HELPERS
+# ============================================================================
+
+def _render_export_buttons(state):
+    """Compact export controls for the results header area.
+
+    Renders a JSON download button and a PDF download button without any
+    surrounding prose or section headings, so they sit cleanly inside the
+    narrow right-hand column next to the metadata strip.
+    Reuses the same export logic as display_download_section.
+    """
+    from src.service.generators.pdf_generator import generate_brief_pdf
+
+    drug_name = getattr(state, "drug_name", "drug") or "drug"
+    doctor = st.session_state.get("current_doctor", "") or ""
+    hospital = st.session_state.get("current_hospital", "") or ""
+    date_str = datetime.now().strftime("%Y%m%d")
+
+    try:
+        json_data = json.dumps(state.__dict__, indent=2, default=str)
+        st.download_button(
+            label="Export JSON",
+            data=json_data,
+            file_name=f"evidentia_msl_brief_{drug_name}_{date_str}.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+    except Exception:
+        pass
+
+    try:
+        pdf_bytes = generate_brief_pdf(
+            state=state,
+            drug_name=drug_name,
+            hospital=hospital,
+            physician=doctor,
+        )
+        st.download_button(
+            label="Export PDF",
+            data=pdf_bytes,
+            file_name=f"evidentia_msl_brief_{drug_name}_{date_str}.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+        )
+    except Exception:
+        pass
+
 
 # ============================================================================
 # MSL TAB: DOWNLOAD BRIEF
