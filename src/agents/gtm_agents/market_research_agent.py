@@ -4,7 +4,7 @@ Searches for market sizing, clinical trials, and epidemiology data
 """
 
 from typing import Dict, Any
-from src.schema.gtm_state import GTMState, MarketResearchData
+from src.schema.gtm_state import GTMState, MarketResearchData, unavailable
 from src.service.tools.clinical_trials_tools import search_clinical_trials, get_sponsor_trials
 from src.service.tools.pubmed_tools import search_pubmed, search_clinical_trials_pubs
 from src.service.tools.tavily_tools import tavily_search, search_market_analysis, search_clinical_evidence
@@ -150,12 +150,15 @@ Keys required:
                 else:
                     logger.warning(f"⚠️ Validation errors: {result.errors}")
                     market_data_dict = get_default_market_data()
+                    _mark_market_unavailable(state, "validation failed")
             except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 market_data_dict = get_default_market_data()
+                _mark_market_unavailable(state, "JSON extraction failed")
         except Exception as e:
             logger.error(f"❌ LLM synthesis error: {str(e)}")
             market_data_dict = get_default_market_data()
+            _mark_market_unavailable(state, f"LLM error: {str(e)}")
         
         # Step 6: Create MarketResearchData object
         market_research_data = MarketResearchData(
@@ -182,7 +185,10 @@ Keys required:
         state.agent_status = "completed"
         
         logger.info("✅ Market Research Agent completed successfully")
-        logger.info(f"📊 TAM: ${market_research_data.tam_estimate:,.0f}M | SAM: ${market_research_data.sam_estimate:,.0f}M | Patients: {market_research_data.patient_population:,}")
+        tam_str = f"${market_research_data.tam_estimate:,.0f}M" if market_research_data.tam_estimate is not None else "N/A"
+        sam_str = f"${market_research_data.sam_estimate:,.0f}M" if market_research_data.sam_estimate is not None else "N/A"
+        pop_str = f"{market_research_data.patient_population:,}" if market_research_data.patient_population is not None else "N/A"
+        logger.info(f"📊 TAM: {tam_str} | SAM: {sam_str} | Patients: {pop_str}")
         
         return state
         
@@ -240,13 +246,26 @@ def format_publications_for_storage(publications: list) -> list:
     ]
 
 
+def _mark_market_unavailable(state: GTMState, reason: str) -> None:
+    """Record market numeric fields as unavailable in the provenance side-map."""
+    note = f"Not available from sources — {reason}"
+    state.sources["market.patient_population"] = unavailable(note)
+    state.sources["market.tam"] = unavailable(note)
+    state.sources["market.sam"] = unavailable(note)
+    state.sources["market.market_figure"] = unavailable(note)
+
+
 def get_default_market_data() -> Dict[str, Any]:
-    """Return default market data when synthesis fails"""
+    """Return honest empty fallback when market synthesis fails.
+
+    Numeric fields are None (not 0) so the UI can distinguish "no data" from
+    a genuine zero value.  Text guidance fields are kept as-is.
+    """
     return {
-        "tam_estimate": 0,
-        "sam_estimate": 0,
-        "som_estimate": 0,
-        "patient_population": 0,
+        "tam_estimate": None,
+        "sam_estimate": None,
+        "som_estimate": None,
+        "patient_population": None,
         "market_drivers": ["Insufficient data"],
         "growth_assumptions": ["Conservative estimate"],
         "epidemiology_notes": "Requires additional research"
