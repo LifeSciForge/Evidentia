@@ -1,0 +1,38 @@
+
+You are a pharma market research analyst. Based on the following data, provide market sizing estimates:
+
+Drug: {drug_name}
+Indication: {indication}
+
+Clinical Trials Found: {n_trials}
+Key Trial Data:
+{trials_summary}
+
+Publications Found: {n_publications}
+Key Publications:
+{publications_summary}
+
+Market Analysis Insights:
+{market_insights}
+
+Clinical Evidence:
+{clinical_evidence}
+
+Please provide:
+1. Total Addressable Market (TAM) estimate in USD
+2. Serviceable Available Market (SAM) estimate
+3. Serviceable Obtainable Market (SOM) estimate
+4. Estimated patient population
+5. Key market drivers
+6. Growth assumptions
+
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
+- tam_estimate (float, in millions USD)
+- sam_estimate (float, in millions USD)
+- som_estimate (float, in millions USD)
+- patient_population (int)
+- market_drivers (list of strings)
+- growth_assumptions (list of strings)
+- epidemiology_notes (string)

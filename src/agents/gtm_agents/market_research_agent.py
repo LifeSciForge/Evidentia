@@ -16,6 +16,7 @@ from src.service.tools.epidemiology_tools import fetch_epidemiology_data
 from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, MarketResearchResponse
+from src.prompts import load_prompt
 
 logger = get_logger(__name__)
 
@@ -103,46 +104,22 @@ async def market_research_agent(state: GTMState) -> GTMState:
         # Step 5: Use LLM to synthesize market sizing
         logger.info("🧠 Synthesizing market data with Claude...")
         llm = get_claude()
-        
-        market_sizing_prompt = f"""
-You are a pharma market research analyst. Based on the following data, provide market sizing estimates:
 
-Drug: {state.drug_name}
-Indication: {state.indication}
+        n_trials = len(trials_data)
+        trials_summary = format_trials_summary(trials_data)
+        n_publications = len(publications)
+        publications_summary = format_publications_summary(publications)
 
-Clinical Trials Found: {len(trials_data)}
-Key Trial Data:
-{format_trials_summary(trials_data)}
-
-Publications Found: {len(publications)}
-Key Publications:
-{format_publications_summary(publications)}
-
-Market Analysis Insights:
-{market_insights}
-
-Clinical Evidence:
-{clinical_evidence}
-
-Please provide:
-1. Total Addressable Market (TAM) estimate in USD
-2. Serviceable Available Market (SAM) estimate
-3. Serviceable Obtainable Market (SOM) estimate
-4. Estimated patient population
-5. Key market drivers
-6. Growth assumptions
-
-Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
-
-Keys required:
-- tam_estimate (float, in millions USD)
-- sam_estimate (float, in millions USD)
-- som_estimate (float, in millions USD)
-- patient_population (int)
-- market_drivers (list of strings)
-- growth_assumptions (list of strings)
-- epidemiology_notes (string)
-"""
+        market_sizing_prompt = load_prompt("market_research").format(
+            drug_name=state.drug_name,
+            indication=state.indication,
+            n_trials=n_trials,
+            trials_summary=trials_summary,
+            n_publications=n_publications,
+            publications_summary=publications_summary,
+            market_insights=market_insights,
+            clinical_evidence=clinical_evidence,
+        )
         
         try:
             response = await asyncio.to_thread(invoke_with_retry, llm, market_sizing_prompt)
