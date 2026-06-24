@@ -13,6 +13,7 @@ import asyncio
 import json
 from src.agents.gtm_workflow import create_gtm_workflow
 from src.core.logger import get_logger
+from src.ui.components import metric_card
 
 logger = get_logger(__name__)
 
@@ -668,6 +669,86 @@ def run_workflow_sync(workflow, drug_name, indication, status_text, progress_bar
 # MSL RESULTS DISPLAY
 # ============================================================================
 
+def glance_lead_points(state) -> tuple:
+    """Return (lead_point, likely_objection) as Optional[str] each.
+
+    Reads real GTMState fields first; also tolerates duck-typed shapes.
+    Never raises — missing or None data returns None for that part.
+    """
+    lead = None
+    objection = None
+
+    # ── Lead talking point ───────────────────────────────────────────────────
+    tp = getattr(state, "msl_talking_points", None)
+    if tp is not None:
+        # Real MSLTalkingPoints path: prefer conversation_opener
+        opener = getattr(tp, "conversation_opener", None)
+        if opener and isinstance(opener, str) and opener.strip():
+            lead = opener.strip()
+        else:
+            # Fallback: first msl_talking_point from three_pillars
+            pillars = getattr(tp, "three_pillars", None) or []
+            for pillar in pillars:
+                pt = getattr(pillar, "msl_talking_point", None)
+                if pt and isinstance(pt, str) and pt.strip():
+                    lead = pt.strip()
+                    break
+
+        # Duck-typed fallback: talking_points list (not in real schema)
+        if not lead:
+            duck_list = getattr(tp, "talking_points", None)
+            if duck_list and isinstance(duck_list, (list, tuple)) and duck_list:
+                first = duck_list[0]
+                if first and isinstance(first, str) and first.strip():
+                    lead = first.strip()
+
+    # Generic MessagingData fallback for lead
+    if not lead:
+        md = getattr(state, "messaging_data", None)
+        if md is not None:
+            pillars = getattr(md, "messaging_pillars", None) or []
+            if pillars and isinstance(pillars[0], str) and pillars[0].strip():
+                lead = pillars[0].strip()
+            if not lead:
+                pos = getattr(md, "positioning_statement", None)
+                if pos and isinstance(pos, str) and pos.strip():
+                    lead = pos.strip()
+
+    # ── Likely objection ─────────────────────────────────────────────────────
+    tp = getattr(state, "msl_talking_points", None)
+    if tp is not None:
+        ant_objs = getattr(tp, "anticipated_objections", None) or []
+        for obj in ant_objs:
+            text = getattr(obj, "objection", None)
+            if text and isinstance(text, str) and text.strip():
+                objection = text.strip()
+                break
+
+    # Duck-typed top-level objections list (SimpleNamespace test shape)
+    if not objection:
+        duck_objs = getattr(state, "objections", None)
+        if duck_objs and isinstance(duck_objs, (list, tuple)) and duck_objs:
+            first = duck_objs[0]
+            if isinstance(first, dict):
+                text = first.get("objection") or first.get("response")
+            else:
+                text = getattr(first, "objection", None)
+            if text and isinstance(text, str) and text.strip():
+                objection = text.strip()
+
+    # Generic MessagingData fallback for objection
+    if not objection:
+        md = getattr(state, "messaging_data", None)
+        if md is not None:
+            common = getattr(md, "common_objections", None) or {}
+            if common and isinstance(common, dict):
+                first_key = next(iter(common), None)
+                if first_key and isinstance(first_key, str) and first_key.strip():
+                    objection = first_key.strip()
+
+    return (lead, objection)
+
+
 def display_msl_results(state, hospital, doctor):
     """Display MSL-focused intelligence brief"""
 
@@ -722,6 +803,64 @@ def display_msl_results(state, hospital, doctor):
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # ── At a glance band ─────────────────────────────────────────────────────
+    lead_point, likely_objection = glance_lead_points(state)
+    market_data = getattr(state, "market_data", None)
+    _has_glance = market_data is not None or lead_point or likely_objection
+
+    if _has_glance:
+        st.markdown(
+            '<p style="font-size:11px;font-weight:700;letter-spacing:.08em;'
+            'text-transform:uppercase;color:#999999;margin:28px 0 12px 0;'
+            'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
+            'At a glance</p>',
+            unsafe_allow_html=True,
+        )
+
+        # Metric cards row — up to three cards from market_data
+        if market_data is not None:
+            _metric_cols = st.columns(3)
+            _col_idx = 0
+            _pop = getattr(market_data, "patient_population", None)
+            if _pop is not None:
+                with _metric_cols[_col_idx]:
+                    metric_card("Patient Population", f"{int(_pop):,}")
+                _col_idx += 1
+            _tam = getattr(market_data, "tam_estimate", None)
+            if _tam is not None and _col_idx < 3:
+                with _metric_cols[_col_idx]:
+                    metric_card("Total Addressable Market", f"${_tam/1e9:.1f}B" if _tam >= 1e9 else f"${_tam/1e6:.0f}M")
+                _col_idx += 1
+            _sam = getattr(market_data, "sam_estimate", None)
+            if _sam is not None and _col_idx < 3:
+                with _metric_cols[_col_idx]:
+                    metric_card("Serviceable Market", f"${_sam/1e9:.1f}B" if _sam >= 1e9 else f"${_sam/1e6:.0f}M")
+
+        # Two-box row for lead point + likely objection
+        if lead_point or likely_objection:
+            _box_parts = []
+            if lead_point:
+                _box_parts.append(
+                    f'<div class="ev-glance-box">'
+                    f'<div class="ev-glance-h">Lead talking point</div>'
+                    f'<div style="font-size:14px;color:#1a1d29;line-height:1.6;">{lead_point}</div>'
+                    f'</div>'
+                )
+            if likely_objection:
+                _box_parts.append(
+                    f'<div class="ev-glance-box">'
+                    f'<div class="ev-glance-h">Likely objection</div>'
+                    f'<div style="font-size:14px;color:#1a1d29;line-height:1.6;">{likely_objection}</div>'
+                    f'</div>'
+                )
+            if _box_parts:
+                st.markdown(
+                    f'<div style="display:flex;gap:16px;margin-top:16px;">'
+                    + "".join(_box_parts)
+                    + '</div>',
+                    unsafe_allow_html=True,
+                )
 
     # Tab navigation (7 tabs)
     tabs = st.tabs([
