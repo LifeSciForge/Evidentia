@@ -8,7 +8,7 @@ from src.schema.gtm_state import GTMState, GTMStrategy
 from src.schema.gtm_output import GTMOutputDocument
 from src.core.llm import get_claude
 from src.core.logger import get_logger
-from src.service.validators.json_validator import extract_json_from_text
+from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, StrategyResponse
 from src.schema.agent_messages import create_agent_message, MESSAGE_TYPES
 from datetime import datetime
 
@@ -160,8 +160,14 @@ Keys required:
             response = llm.invoke(strategy_prompt)
             response_text = response.content
             try:
-                strategy_dict = extract_json_from_text(response_text)
-                logger.info("✅ GTM strategy synthesized successfully")
+                raw = extract_json_from_text(response_text)
+                result = validate_with_pydantic(raw, StrategyResponse)
+                if result.valid:
+                    strategy_dict = result.data.model_dump()
+                    logger.info("✅ GTM strategy synthesized and validated successfully")
+                else:
+                    logger.warning(f"⚠️ Strategy validation errors: {result.errors}")
+                    strategy_dict = get_default_strategy_data()
             except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 strategy_dict = get_default_strategy_data()

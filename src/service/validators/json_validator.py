@@ -231,3 +231,30 @@ class MSLTalkingPointsSchema(BaseModel):
     anticipated_objections: list[AnticipatedObjectionSchema] = []
     guardrails: dict = {}
     delivery_notes: dict = {}
+
+
+class ICPResponse(BaseModel):
+    """Schema for icp_definition_agent LLM output."""
+    primary_icp: dict = {}
+    secondary_icp: dict = {}
+    buying_committee: dict = {}
+    urgency_triggers: list[str] = []
+    geography_priority: list[str] = []
+    tam_by_segment: dict = {}
+    icp_summary: str = ""
+
+
+class StrategyResponse(BaseModel):
+    """Schema for synthesis_agent LLM output."""
+    executive_summary: dict = {}
+    market_opportunity: dict = {}
+    target_segment: dict = {}
+    positioning: dict = {}
+    channel_strategy: dict = {}
+    pricing_strategy: dict = {}
+    reimbursement_strategy: dict = {}
+    timeline: dict = {}
+    resources: dict = {}
+    success_metrics: list[str] = []
+    risks_and_mitigations: dict = {}
+    competitive_moat: str = ""

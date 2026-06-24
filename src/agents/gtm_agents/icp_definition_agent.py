@@ -9,7 +9,7 @@ from src.service.tools.tavily_tools import tavily_search
 from src.core.llm import get_claude
 from src.core.logger import get_logger
 from src.utils.formatters import safe_join, safe_format_list
-from src.service.validators.json_validator import extract_json_from_text
+from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, ICPResponse
 
 logger = get_logger(__name__)
 
@@ -128,8 +128,14 @@ Keys required:
             response = llm.invoke(icp_prompt)
             response_text = response.content
             try:
-                icp_data_dict = extract_json_from_text(response_text)
-                logger.info("✅ ICP definition synthesized successfully")
+                raw = extract_json_from_text(response_text)
+                result = validate_with_pydantic(raw, ICPResponse)
+                if result.valid:
+                    icp_data_dict = result.data.model_dump()
+                    logger.info("✅ ICP definition synthesized and validated successfully")
+                else:
+                    logger.warning(f"⚠️ ICP validation errors: {result.errors}")
+                    icp_data_dict = get_default_icp_data()
             except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 icp_data_dict = get_default_icp_data()
