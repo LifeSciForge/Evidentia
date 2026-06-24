@@ -13,6 +13,17 @@ import pytest
 from src.schema.gtm_state import GTMState
 
 
+@pytest.fixture(autouse=True)
+def _no_retry_sleep(monkeypatch):
+    """Neutralize tenacity's backoff sleep so retry paths don't slow the suite.
+
+    The LLM/tool retry wrappers use real exponential backoff in production; tests
+    that exercise failure/fallback paths would otherwise sleep seconds each. We
+    only care that retries HAPPEN (asserted via call counts), not that they wait.
+    """
+    monkeypatch.setattr("tenacity.nap.time.sleep", lambda *_a, **_k: None)
+
+
 @pytest.fixture
 def demo_state():
     """Standard working demo case used across the suite."""
