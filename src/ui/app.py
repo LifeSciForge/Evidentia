@@ -458,7 +458,7 @@ def main():
     # Page header — typographic, no emoji
     st.markdown("""
     <div class="ev-page-header">
-        <h1 style="font-size: 48px; font-weight: bold; color: #003366; letter-spacing: 2px; margin: 20px 0;">Evidentia</h1>
+        <h1 style="font-size: 48px; font-weight: bold; color: #5b5bd6; letter-spacing: 2px; margin: 20px 0;">Evidentia</h1>
         <p class="ev-brand-subtitle">Clinical Pre-Call Intelligence for Medical Science Liaisons</p>
     </div>
     <hr class="ev-divider">
@@ -1195,7 +1195,7 @@ def display_objection_handling_section(state):
     )
 
     st.markdown(
-        '<p style="font-size:28px;font-weight:700;color:#003366;'
+        '<p style="font-size:28px;font-weight:700;color:#5b5bd6;'
         'letter-spacing:0px;margin:0 0 8px 0;'
         'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
         'Objection Handling Guide</p>',
@@ -1249,7 +1249,7 @@ def display_objection_handling_section(state):
         unsafe_allow_html=True
     )
     st.markdown(
-        '<p style="font-size:28px;font-weight:700;color:#003366;'
+        '<p style="font-size:28px;font-weight:700;color:#5b5bd6;'
         'letter-spacing:0px;margin:0 0 8px 0;'
         'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
         'Ask Evidentia</p>',
@@ -1269,7 +1269,7 @@ def display_objection_handling_section(state):
             if message["role"] == "user":
                 st.markdown(
                     f'<div style="background:#F5F5F5;border-radius:4px;padding:12px 16px;'
-                    f'margin-bottom:8px;font-size:13px;color:#003366;font-weight:600;'
+                    f'margin-bottom:8px;font-size:13px;color:#5b5bd6;font-weight:600;'
                     f'line-height:1.5;font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
                     f'You: {message["content"]}</div>',
                     unsafe_allow_html=True
@@ -1328,16 +1328,16 @@ def _tab_heading(title: str, subtitle: str = ""):
         if subtitle else '<div style="height:20px"></div>'
     )
     st.markdown(
-        f'<p style="font-size:28px;font-weight:700;color:#003366;margin:0;'
+        f'<p style="font-size:28px;font-weight:700;color:#5b5bd6;margin:0;'
         f'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">{title}</p>{sub_html}',
         unsafe_allow_html=True
     )
 
 
 def _section_label(text: str):
-    """Render a section label (uppercase, 16px, #003366)."""
+    """Render a section label (uppercase, 16px, #5b5bd6)."""
     st.markdown(
-        f'<p style="font-size:16px;font-weight:600;color:#003366;text-transform:uppercase;'
+        f'<p style="font-size:16px;font-weight:600;color:#5b5bd6;text-transform:uppercase;'
         f'letter-spacing:0.5px;margin:0 0 6px 0;'
         f'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">{text}</p>',
         unsafe_allow_html=True
@@ -1483,9 +1483,9 @@ def display_discovery_questions_section(state):
     ]
     for step, detail in flow:
         st.markdown(
-            f'<div style="background:#E8F1F8;border-left:3px solid #003366;border-radius:2px;'
+            f'<div style="background:#E8F1F8;border-left:3px solid #5b5bd6;border-radius:2px;'
             f'padding:14px 16px;margin-bottom:10px;font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-            f'<p style="font-size:13px;font-weight:600;color:#003366;margin:0 0 4px 0;">{step}</p>'
+            f'<p style="font-size:13px;font-weight:600;color:#5b5bd6;margin:0 0 4px 0;">{step}</p>'
             f'<p style="font-size:12px;color:#555;margin:0;line-height:1.5;">{detail}</p>'
             f'</div>',
             unsafe_allow_html=True
@@ -1519,7 +1519,7 @@ def display_clinical_evidence_section(state):
         "padding:20px;text-align:center;font-family:'Inter','Helvetica Neue',sans-serif;"
     )
     label_style = "font-size:12px;font-weight:600;color:#666666;text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:8px;"
-    value_style = "font-size:28px;font-weight:700;color:#003366;display:block;margin-bottom:6px;"
+    value_style = "font-size:28px;font-weight:700;color:#5b5bd6;display:block;margin-bottom:6px;"
     source_style = "font-size:10px;color:#999999;font-style:italic;display:block;"
 
     c1, c2, c3 = st.columns(3)
@@ -1558,7 +1558,7 @@ def display_clinical_evidence_section(state):
     if state.market_data.clinical_trials:
         th_style = (
             "padding:10px 12px;text-align:left;font-size:11px;font-weight:600;"
-            "color:#003366;text-transform:uppercase;letter-spacing:0.3px;"
+            "color:#5b5bd6;text-transform:uppercase;letter-spacing:0.3px;"
             "background:#F5F5F5;border-bottom:1px solid #E0E0E0;"
         )
         td_style = (
@@ -1566,7 +1566,7 @@ def display_clinical_evidence_section(state):
             "border-bottom:1px solid #E0E0E0;vertical-align:top;"
         )
         status_badges = {
-            "recruiting": "background:#E8F1F8;color:#003366;",
+            "recruiting": "background:#E8F1F8;color:#5b5bd6;",
             "active": "background:#E8F5E9;color:#00A86B;",
             "completed": "background:#F5F5F5;color:#666666;",
         }
@@ -1582,7 +1582,7 @@ def display_clinical_evidence_section(state):
 
             nct_html = (
                 f'<a href="https://clinicaltrials.gov/ct2/show/{nct}" target="_blank" '
-                f'style="color:#003366;text-decoration:underline;">{nct}</a>'
+                f'style="color:#5b5bd6;text-decoration:underline;">{nct}</a>'
                 if nct else "—"
             )
             status_lower = status.lower()
@@ -1673,7 +1673,7 @@ def display_clinical_evidence_section(state):
         with cols[i]:
             st.markdown(
                 f'<div style="{card_s}">'
-                f'<p style="font-size:13px;font-weight:600;color:#003366;margin:0 0 8px 0;line-height:1.4;">{heading}</p>'
+                f'<p style="font-size:13px;font-weight:600;color:#5b5bd6;margin:0 0 8px 0;line-height:1.4;">{heading}</p>'
                 f'<p style="font-size:12px;color:#555555;margin:0;line-height:1.6;">{body}</p>'
                 f'</div>',
                 unsafe_allow_html=True
@@ -1704,7 +1704,7 @@ def display_reimbursement_section(state):
         "font-family:'Inter','Helvetica Neue',sans-serif;"
     )
     lbl_s = "font-size:12px;font-weight:600;color:#666666;text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:8px;"
-    val_s = "font-size:20px;font-weight:700;color:#003366;display:block;margin-bottom:6px;"
+    val_s = "font-size:20px;font-weight:700;color:#5b5bd6;display:block;margin-bottom:6px;"
     note_s = "font-size:11px;color:#999999;font-style:italic;display:block;line-height:1.4;"
 
     c1, c2, c3 = st.columns(3)
@@ -1789,7 +1789,7 @@ def display_reimbursement_section(state):
         )
         st.markdown(
             f'<div style="{scen_card}">'
-            f'<p style="font-size:14px;font-weight:600;color:#003366;margin:0 0 12px 0;">{s["title"]}</p>'
+            f'<p style="font-size:14px;font-weight:600;color:#5b5bd6;margin:0 0 12px 0;">{s["title"]}</p>'
             f'<p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#999;margin:0 0 4px 0;">Your Response</p>'
             f'<p style="font-size:13px;font-style:italic;color:#555555;line-height:1.6;background:#FFFFFF;border-radius:3px;padding:10px 14px;margin:0 0 14px 0;">{s["response"]}</p>'
             f'<hr style="border:none;border-top:1px solid #E0E0E0;margin:0 0 14px 0;">'
@@ -1816,7 +1816,7 @@ def display_reimbursement_section(state):
             st.markdown(
                 f'<div style="background:#FFF8F0;border-left:3px solid #FF9500;border-radius:2px;'
                 f'padding:16px;margin-bottom:12px;font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-                f'<p style="font-size:13px;font-weight:600;color:#003366;margin:0 0 8px 0;">{barrier}</p>'
+                f'<p style="font-size:13px;font-weight:600;color:#5b5bd6;margin:0 0 8px 0;">{barrier}</p>'
                 f'<p style="font-size:12px;color:#555;line-height:1.6;margin:0 0 4px 0;">'
                 f'<span style="font-weight:600;color:#FF9500;">Barrier:</span> May delay payer approval or limit patient access</p>'
                 f'<p style="font-size:12px;color:#555;line-height:1.6;margin:0;">'
@@ -1837,7 +1837,7 @@ def display_reimbursement_section(state):
             st.markdown(
                 f'<div style="background:#FFF8F0;border-left:3px solid #FF9500;border-radius:2px;'
                 f'padding:16px;margin-bottom:12px;font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-                f'<p style="font-size:13px;font-weight:600;color:#003366;margin:0 0 8px 0;">{barrier}</p>'
+                f'<p style="font-size:13px;font-weight:600;color:#5b5bd6;margin:0 0 8px 0;">{barrier}</p>'
                 f'<p style="font-size:12px;color:#555;line-height:1.6;margin:0;">'
                 f'<span style="font-weight:600;color:#00A86B;">Mitigation:</span> {mitigation}</p>'
                 f'</div>',
@@ -1890,11 +1890,11 @@ def display_competitive_section(state):
                 st.markdown(
                     f'<div style="border:1px solid #E0E0E0;border-radius:4px;padding:16px;'
                     f'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-                    f'<p style="font-size:14px;font-weight:700;color:#003366;margin:0 0 4px 0;">'
+                    f'<p style="font-size:14px;font-weight:700;color:#5b5bd6;margin:0 0 4px 0;">'
                     f'{comp.competitor_name}</p>'
                     f'<div style="display:flex;gap:16px;margin-bottom:12px;">'
-                    f'<span style="font-size:11px;color:#666;"><strong style="color:#003366;">{share}</strong> share</span>'
-                    f'<span style="font-size:11px;color:#666;"><strong style="color:#003366;">{pricing}</strong> / cycle</span>'
+                    f'<span style="font-size:11px;color:#666;"><strong style="color:#5b5bd6;">{share}</strong> share</span>'
+                    f'<span style="font-size:11px;color:#666;"><strong style="color:#5b5bd6;">{pricing}</strong> / cycle</span>'
                     f'</div>'
                     f'<p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#999;margin:0 0 4px 0;">Positioning</p>'
                     f'<p style="font-size:12px;color:#555;line-height:1.5;margin:0 0 12px 0;">{positioning[:120]}</p>'
@@ -1918,7 +1918,7 @@ def display_competitive_section(state):
         st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
         diffs = state.messaging_data.key_differentiators[:3]
-        border_colors = ["#003366", "#00A86B", "#FF9500"]
+        border_colors = ["#5b5bd6", "#00A86B", "#FF9500"]
         adv_labels = ["Clinical Edge", "Commercial Advantage", "Strategic Differentiation"]
         cols = st.columns(len(diffs))
         for i, diff in enumerate(diffs):
@@ -1961,7 +1961,7 @@ def display_competitive_section(state):
             st.markdown(
                 f'<div style="background:#F5F5F5;border:1px solid #E0E0E0;border-radius:4px;'
                 f'padding:16px;margin-bottom:12px;font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-                f'<p style="font-size:13px;font-weight:600;color:#003366;margin:0 0 8px 0;">{scenario}</p>'
+                f'<p style="font-size:13px;font-weight:600;color:#5b5bd6;margin:0 0 8px 0;">{scenario}</p>'
                 f'<p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#999;margin:0 0 4px 0;">Your Response</p>'
                 f'<p style="font-size:13px;color:#555555;line-height:1.6;margin:0;">{response}</p>'
                 f'</div>',
@@ -2001,7 +2001,7 @@ def display_final_brief_section(state):
         )
     )
     st.markdown(
-        f'<div style="background:#E8F1F8;border-left:3px solid #003366;border-radius:0 4px 4px 0;'
+        f'<div style="background:#E8F1F8;border-left:3px solid #5b5bd6;border-radius:0 4px 4px 0;'
         f'padding:16px 20px;font-size:13px;line-height:1.7;color:#333333;margin-bottom:8px;'
         f'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">{summary}</div>',
         unsafe_allow_html=True
@@ -2045,7 +2045,7 @@ def display_final_brief_section(state):
             st.markdown(
                 f'<div style="background:#F5F5F5;border:1px solid #E0E0E0;border-radius:4px;'
                 f'padding:16px;font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-                f'<p style="font-size:12px;font-weight:600;color:#003366;text-transform:uppercase;'
+                f'<p style="font-size:12px;font-weight:600;color:#5b5bd6;text-transform:uppercase;'
                 f'letter-spacing:0.3px;margin:0 0 8px 0;">{title}</p>'
                 f'<p style="font-size:13px;color:#555555;line-height:1.6;margin:0;">{body}</p>'
                 f'</div>',
@@ -2088,7 +2088,7 @@ def display_final_brief_section(state):
         st.markdown(
             f'<div style="background:#F5F5F5;border-left:2px solid #FF9500;border-radius:2px;'
             f'padding:14px 16px;margin-bottom:10px;font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-            f'<p style="font-size:13px;font-weight:600;color:#003366;margin:0 0 6px 0;">{obj_title}</p>'
+            f'<p style="font-size:13px;font-weight:600;color:#5b5bd6;margin:0 0 6px 0;">{obj_title}</p>'
             f'<p style="font-size:12px;color:#555555;line-height:1.6;margin:0;">'
             f'<strong style="color:#333333;">Response: </strong>{obj_resp}</p>'
             f'</div>',
@@ -2116,7 +2116,7 @@ def display_final_brief_section(state):
             f'<div style="padding:10px 14px;border-left:3px solid #E0E0E0;margin-bottom:8px;'
             f'font-size:13px;color:#333333;line-height:1.6;'
             f'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-            f'<strong style="color:#003366;">{i}.</strong> {q}</div>',
+            f'<strong style="color:#5b5bd6;">{i}.</strong> {q}</div>',
             unsafe_allow_html=True
         )
 
@@ -2148,7 +2148,7 @@ def display_final_brief_section(state):
                 f'<div style="background:#F5F5F5;border:1px solid #E0E0E0;border-radius:4px;'
                 f'padding:12px;margin-bottom:12px;font-size:13px;color:#555555;line-height:1.6;'
                 f'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-                f'<strong style="display:block;color:#003366;margin-bottom:3px;">{label}</strong>'
+                f'<strong style="display:block;color:#5b5bd6;margin-bottom:3px;">{label}</strong>'
                 f'{value}</div>',
                 unsafe_allow_html=True
             )
@@ -2175,7 +2175,7 @@ def display_final_brief_section(state):
         st.markdown(
             f'<div style="background:#E8F5E9;border-left:3px solid #00A86B;border-radius:2px;padding:16px;'
             f'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-            f'<p style="font-size:13px;font-weight:700;color:#003366;margin:0 0 10px 0;">{drug}</p>'
+            f'<p style="font-size:13px;font-weight:700;color:#5b5bd6;margin:0 0 10px 0;">{drug}</p>'
             f'<ul style="margin:0;padding-left:16px;">{our_li}</ul>'
             f'</div>',
             unsafe_allow_html=True
@@ -2193,7 +2193,7 @@ def display_final_brief_section(state):
         st.markdown(
             f'<div style="background:#F5F5F5;border-left:3px solid #E0E0E0;border-radius:2px;padding:16px;'
             f'font-family:\'Inter\',\'Helvetica Neue\',sans-serif;">'
-            f'<p style="font-size:13px;font-weight:700;color:#003366;margin:0 0 10px 0;">{comp_name}</p>'
+            f'<p style="font-size:13px;font-weight:700;color:#5b5bd6;margin:0 0 10px 0;">{comp_name}</p>'
             f'<ul style="margin:0;padding-left:16px;">{comp_li}</ul>'
             f'</div>',
             unsafe_allow_html=True
