@@ -14,7 +14,7 @@ from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import (
     extract_json_from_text, validate_with_pydantic,
-    PositioningResponse, PersonaResponse,
+    PositioningResponse, PersonaResponse, AllPersonasResponse,
 )
 
 logger = get_logger(__name__)
@@ -332,65 +332,101 @@ Keys required:
             logger.error(f"❌ LLM positioning error: {str(e)}")
             positioning_dict = get_default_positioning_data()
 
-        # Step 2: Generate persona-specific messaging concurrently
-        logger.info("👥 Generating persona-specific messaging concurrently...")
+        # Step 2: Generate persona-specific messaging — ONE call for all personas
+        logger.info("👥 Generating messaging for all personas in a single LLM call...")
 
         personas = ["Chief Commercial Officer", "Head of Market Access", "HEOR Director", "Medical Affairs Lead"]
 
-        def _build_persona_prompt(persona: str) -> str:
-            return f"""
-Create detailed messaging for a {persona} regarding {state.drug_name}:
+        all_personas_prompt = f"""
+You are a pharma Medical Science Liaison (MSL) communication strategist.
+Create detailed messaging for ALL of the following personas regarding {state.drug_name}.
+
+Personas: {', '.join(personas)}
 
 Positioning: {positioning_dict.get('positioning_statement', '')}
 Key Differentiators: {positioning_dict.get('key_differentiators', [])}
 
-For this persona, provide:
-1. Role description (2-3 sentences)
-2. Top 3 pain points (from their perspective)
-3. Top 3 value propositions (specific to their needs)
-4. 3 objection-response pairs specific to their concerns
-5. 3 success metrics they care about
-6. 2-3 engagement triggers
+For EACH persona, provide:
+1. role_description (2-3 sentences about their role)
+2. pain_points (list of top 3 pain points from their perspective)
+3. value_propositions (list of top 3 value propositions specific to their needs)
+4. objection_responses (object: objection string -> response string, 3 pairs)
+5. success_metrics (list of 3 metrics they care about)
+6. engagement_triggers (list of 2-3 engagement triggers)
 
 Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
 
-Keys required:
-- role_description (string)
-- pain_points (list of strings)
-- value_propositions (list of strings)
-- objection_responses (object: objection -> response)
-- success_metrics (list of strings)
-- engagement_triggers (list of strings)
+The JSON must be a single object with exactly these top-level keys (one per persona):
+- "Chief Commercial Officer"
+- "Head of Market Access"
+- "HEOR Director"
+- "Medical Affairs Lead"
+
+Each persona key maps to an object with fields:
+  role_description, pain_points, value_propositions, objection_responses, success_metrics, engagement_triggers
+
+Example structure (fill in real content):
+{{
+  "Chief Commercial Officer": {{
+    "role_description": "...",
+    "pain_points": ["...", "...", "..."],
+    "value_propositions": ["...", "...", "..."],
+    "objection_responses": {{"Objection 1": "Response 1"}},
+    "success_metrics": ["...", "...", "..."],
+    "engagement_triggers": ["...", "..."]
+  }},
+  "Head of Market Access": {{ ... }},
+  "HEOR Director": {{ ... }},
+  "Medical Affairs Lead": {{ ... }}
+}}
 """
 
-        async def _invoke_persona(persona: str) -> Dict[str, Any]:
-            persona_prompt = _build_persona_prompt(persona)
-            try:
-                persona_response = await asyncio.to_thread(invoke_with_retry, llm, persona_prompt)
-                persona_text = persona_response.content
-                try:
-                    raw = extract_json_from_text(persona_text)
-                    presult = validate_with_pydantic(raw, PersonaResponse)
-                    return presult.data.model_dump() if presult.valid else get_default_persona_data()
-                except ValueError:
-                    return get_default_persona_data()
-            except Exception as e:
-                logger.error(f"Error creating messaging for {persona}: {str(e)}")
-                return get_default_persona_data()
-
-        persona_results = await asyncio.gather(*[_invoke_persona(p) for p in personas])
-
         persona_messaging = {}
-        for persona, persona_data in zip(personas, persona_results):
-            persona_messaging[persona] = PersonaMessaging(
-                persona=persona,
-                role_description=persona_data.get("role_description", ""),
-                key_pain_points=persona_data.get("pain_points", []),
-                value_propositions=persona_data.get("value_propositions", []),
-                objection_responses=persona_data.get("objection_responses", {}),
-                success_metrics=persona_data.get("success_metrics", []),
-                engagement_triggers=persona_data.get("engagement_triggers", [])
-            )
+        try:
+            personas_response = await asyncio.to_thread(invoke_with_retry, llm, all_personas_prompt)
+            personas_text = personas_response.content
+            try:
+                raw = extract_json_from_text(personas_text)
+                all_personas = AllPersonasResponse.from_flat_dict(raw)
+                for persona in personas:
+                    persona_model = all_personas.personas.get(persona, PersonaResponse())
+                    persona_data = persona_model.model_dump()
+                    persona_messaging[persona] = PersonaMessaging(
+                        persona=persona,
+                        role_description=persona_data.get("role_description", ""),
+                        key_pain_points=persona_data.get("pain_points", []),
+                        value_propositions=persona_data.get("value_propositions", []),
+                        objection_responses=persona_data.get("objection_responses", {}),
+                        success_metrics=persona_data.get("success_metrics", []),
+                        engagement_triggers=persona_data.get("engagement_triggers", []),
+                    )
+                logger.info(f"✅ All-personas call succeeded — {len(all_personas.personas)} personas parsed")
+            except (ValueError, Exception) as parse_err:
+                logger.warning(f"⚠️ Could not parse all-personas JSON ({parse_err}); using defaults for all personas")
+                for persona in personas:
+                    persona_data = get_default_persona_data()
+                    persona_messaging[persona] = PersonaMessaging(
+                        persona=persona,
+                        role_description=persona_data.get("role_description", ""),
+                        key_pain_points=persona_data.get("pain_points", []),
+                        value_propositions=persona_data.get("value_propositions", []),
+                        objection_responses=persona_data.get("objection_responses", {}),
+                        success_metrics=persona_data.get("success_metrics", []),
+                        engagement_triggers=persona_data.get("engagement_triggers", []),
+                    )
+        except Exception as e:
+            logger.error(f"❌ All-personas LLM call failed: {e}; using defaults for all personas")
+            for persona in personas:
+                persona_data = get_default_persona_data()
+                persona_messaging[persona] = PersonaMessaging(
+                    persona=persona,
+                    role_description=persona_data.get("role_description", ""),
+                    key_pain_points=persona_data.get("pain_points", []),
+                    value_propositions=persona_data.get("value_propositions", []),
+                    objection_responses=persona_data.get("objection_responses", {}),
+                    success_metrics=persona_data.get("success_metrics", []),
+                    engagement_triggers=persona_data.get("engagement_triggers", []),
+                )
         
         # Step 3: Create MessagingData object
         messaging_data = MessagingData(

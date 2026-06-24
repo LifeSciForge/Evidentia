@@ -258,3 +258,43 @@ class StrategyResponse(BaseModel):
     success_metrics: list[str] = []
     risks_and_mitigations: dict = {}
     competitive_moat: str = ""
+
+
+class AllPersonasResponse(BaseModel):
+    """
+    Schema for the single all-personas LLM call in messaging_agent.
+
+    The LLM returns a JSON object whose keys are persona names and whose values
+    each match the PersonaResponse shape.  We store them as a raw dict so the
+    agent can iterate over arbitrary persona names without knowing them at
+    schema-definition time.
+
+    Example payload:
+    {
+      "Chief Commercial Officer": { "role_description": "...", ... },
+      "Head of Market Access":    { ... },
+      ...
+    }
+    """
+
+    # Permissive: accept any top-level key as a persona name.
+    # The agent iterates over the dict and validates each entry against
+    # PersonaResponse individually.
+    personas: dict[str, PersonaResponse] = Field(default_factory=dict)
+
+    @classmethod
+    def from_flat_dict(cls, data: dict) -> "AllPersonasResponse":
+        """
+        Parse a flat dict of { persona_name: persona_fields } into this model.
+
+        The LLM is asked to return the flat structure directly (no wrapping
+        'personas' key), so this helper lifts it into the Pydantic model.
+        """
+        parsed: dict[str, PersonaResponse] = {}
+        for persona_name, fields in data.items():
+            if isinstance(fields, dict):
+                try:
+                    parsed[persona_name] = PersonaResponse(**fields)
+                except Exception:
+                    parsed[persona_name] = PersonaResponse()
+        return cls(personas=parsed)
