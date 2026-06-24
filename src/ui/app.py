@@ -669,6 +669,15 @@ def run_workflow_sync(workflow, drug_name, indication, status_text, progress_bar
 # MSL RESULTS DISPLAY
 # ============================================================================
 
+def chip_for(state, key: str) -> str:
+    """Return source-chip HTML for a sources-map key, or '' if absent."""
+    src = getattr(state, "sources", {}).get(key)
+    if not src:
+        return ""
+    from src.ui.components import source_chip_html
+    return source_chip_html(src.tier, src.label, url=src.url, note=src.note)
+
+
 def glance_lead_points(state) -> tuple:
     """Return (lead_point, likely_objection) as Optional[str] each.
 
@@ -810,24 +819,44 @@ def display_msl_results(state, hospital, doctor):
             unsafe_allow_html=True,
         )
 
-        # Metric cards row — up to three cards from market_data
+        # Metric cards row — always 3 cards; honest "—" when value absent/zero
         if market_data is not None:
             _metric_cols = st.columns(3)
-            _col_idx = 0
+
             _pop = getattr(market_data, "patient_population", None)
-            if _pop is not None:
-                with _metric_cols[_col_idx]:
-                    metric_card("Patient Population", f"{int(_pop):,}")
-                _col_idx += 1
+            _pop_value = f"{int(_pop):,}" if _pop else "—"
+            with _metric_cols[0]:
+                metric_card(
+                    "Patient Population",
+                    _pop_value,
+                    source_html=chip_for(state, "market.patient_population"),
+                )
+
             _tam = getattr(market_data, "tam_estimate", None)
-            if _tam is not None and _col_idx < 3:
-                with _metric_cols[_col_idx]:
-                    metric_card("Total Addressable Market", f"${_tam/1e9:.1f}B" if _tam >= 1e9 else f"${_tam/1e6:.0f}M")
-                _col_idx += 1
+            _tam_value = (
+                f"${_tam/1e9:.1f}B" if _tam and _tam >= 1e9
+                else f"${_tam/1e6:.0f}M" if _tam
+                else "—"
+            )
+            with _metric_cols[1]:
+                metric_card(
+                    "Total Addressable Market",
+                    _tam_value,
+                    source_html=chip_for(state, "market.tam"),
+                )
+
             _sam = getattr(market_data, "sam_estimate", None)
-            if _sam is not None and _col_idx < 3:
-                with _metric_cols[_col_idx]:
-                    metric_card("Serviceable Market", f"${_sam/1e9:.1f}B" if _sam >= 1e9 else f"${_sam/1e6:.0f}M")
+            _sam_value = (
+                f"${_sam/1e9:.1f}B" if _sam and _sam >= 1e9
+                else f"${_sam/1e6:.0f}M" if _sam
+                else "—"
+            )
+            with _metric_cols[2]:
+                metric_card(
+                    "Serviceable Market",
+                    _sam_value,
+                    source_html=chip_for(state, "market.sam"),
+                )
 
         # Two-box row for lead point + likely objection
         if lead_point or likely_objection:
