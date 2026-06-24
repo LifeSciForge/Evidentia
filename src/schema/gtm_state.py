@@ -6,6 +6,53 @@ Core data structures that flow through all 6 agents in the LangGraph workflow
 from typing import Optional, Dict, List, Any
 from dataclasses import dataclass, field
 from datetime import datetime
+from urllib.parse import urlparse
+
+
+@dataclass
+class Source:
+    tier: str               # verified | web | filing | modeled | unavailable
+    label: str
+    url: Optional[str] = None
+    note: Optional[str] = None
+
+
+@dataclass
+class SourcedValue:
+    value: Any
+    source: Source
+    display: Optional[str] = None
+    modeled_from: List["SourcedValue"] = field(default_factory=list)
+
+
+def unavailable(note: str = "Unavailable") -> Source:
+    return Source(tier="unavailable", label="Unavailable", url=None, note=note)
+
+
+def _domain(url: str) -> str:
+    try:
+        host = urlparse(url).netloc.lower()
+        return host[4:] if host.startswith("www.") else host
+    except Exception:
+        return url
+
+
+def web_source(url: str, note: Optional[str] = None) -> Source:
+    return Source(tier="web", label=_domain(url), url=url, note=note)
+
+
+def verified_source(label: str, url: Optional[str] = None, note: Optional[str] = None) -> Source:
+    return Source(tier="verified", label=label, url=url, note=note)
+
+
+def filing_source(label: str, url: Optional[str] = None, note: Optional[str] = None) -> Source:
+    return Source(tier="filing", label=label, url=url, note=note)
+
+
+def modeled(value: Any, display: str, inputs: List[SourcedValue]) -> SourcedValue:
+    return SourcedValue(value=value, display=display,
+                        source=Source(tier="modeled", label="Modeled from sourced inputs", url=None),
+                        modeled_from=list(inputs))
 
 
 @dataclass
@@ -230,6 +277,9 @@ class GTMState:
 
     # Audit trail
     agent_messages: List[Any] = field(default_factory=list)
+
+    # Provenance side-map: field_key -> Source
+    sources: Dict[str, "Source"] = field(default_factory=dict)
     
     # Workflow Metadata
     workflow_id: str = field(default_factory=lambda: datetime.now().strftime("%Y%m%d_%H%M%S"))
