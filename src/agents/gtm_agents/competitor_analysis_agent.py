@@ -11,6 +11,7 @@ from src.service.tools.pubmed_tools import search_pubmed
 from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, CompetitorResponse
+from src.prompts import load_prompt
 
 logger = get_logger(__name__)
 
@@ -61,58 +62,12 @@ async def competitor_analysis_agent(state: GTMState) -> GTMState:
         # Step 3: Use LLM to identify and analyze competitors
         logger.info("🧠 Analyzing competitor landscape with Claude...")
         llm = get_claude()
-        
-        competitor_prompt = f"""
-You are a pharma competitive intelligence analyst. Based on the following data, identify and analyze the top 3 competitors:
 
-Drug: {state.drug_name}
-Indication: {state.indication}
-
-Market Overview:
-{competitor_insights}
-
-Please identify the 3 main competitor drugs and provide:
-
-For each competitor:
-1. Drug name
-2. Company/Applicant
-3. Market share percentage (estimate)
-4. Pricing (USD per dose or annual treatment cost if available)
-5. Key differentiators vs our drug
-6. Clinical advantages
-7. Clinical disadvantages
-8. Launch date (if available)
-9. Annual sales (if available)
-
-Also provide:
-- Overall competitive gaps in the market
-- Market positioning strategy for our drug
-- Competitive threats to our launch
-- Competitive opportunities we can exploit
-
-Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
-
-Use this exact structure:
-{{
-  "competitors": [
-    {{
-      "name": "string",
-      "company": "string",
-      "market_share": 0.0,
-      "pricing": 0.0,
-      "key_differentiators": ["string"],
-      "clinical_advantages": ["string"],
-      "clinical_disadvantages": ["string"],
-      "launch_date": "string",
-      "annual_sales": 0.0
-    }}
-  ],
-  "competitive_gaps": {{"gap_1": "description"}},
-  "positioning_strategy": "string",
-  "threats": ["string"],
-  "opportunities": ["string"]
-}}
-"""
+        competitor_prompt = load_prompt("competitor_analysis").format(
+            drug_name=state.drug_name,
+            indication=state.indication,
+            competitor_insights=competitor_insights,
+        )
         
         try:
             response = await asyncio.to_thread(invoke_with_retry, llm, competitor_prompt)

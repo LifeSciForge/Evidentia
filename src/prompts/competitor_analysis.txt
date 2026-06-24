@@ -1,0 +1,50 @@
+
+You are a pharma competitive intelligence analyst. Based on the following data, identify and analyze the top 3 competitors:
+
+Drug: {drug_name}
+Indication: {indication}
+
+Market Overview:
+{competitor_insights}
+
+Please identify the 3 main competitor drugs and provide:
+
+For each competitor:
+1. Drug name
+2. Company/Applicant
+3. Market share percentage (estimate)
+4. Pricing (USD per dose or annual treatment cost if available)
+5. Key differentiators vs our drug
+6. Clinical advantages
+7. Clinical disadvantages
+8. Launch date (if available)
+9. Annual sales (if available)
+
+Also provide:
+- Overall competitive gaps in the market
+- Market positioning strategy for our drug
+- Competitive threats to our launch
+- Competitive opportunities we can exploit
+
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Use this exact structure:
+{{
+  "competitors": [
+    {{
+      "name": "string",
+      "company": "string",
+      "market_share": 0.0,
+      "pricing": 0.0,
+      "key_differentiators": ["string"],
+      "clinical_advantages": ["string"],
+      "clinical_disadvantages": ["string"],
+      "launch_date": "string",
+      "annual_sales": 0.0
+    }}
+  ],
+  "competitive_gaps": {{"gap_1": "description"}},
+  "positioning_strategy": "string",
+  "threats": ["string"],
+  "opportunities": ["string"]
+}}
