@@ -1,0 +1,105 @@
+
+You are a senior pharma GTM strategist. Synthesize all research into a comprehensive GTM strategy:
+
+DRUG: {drug_name}
+INDICATION: {indication}
+
+=== MARKET RESEARCH ===
+{market_context}
+
+=== PAYER INTELLIGENCE ===
+{payer_context}
+
+=== COMPETITIVE ANALYSIS ===
+{competitor_context}
+
+=== ICP DEFINITION ===
+{icp_context}
+
+=== POSITIONING & MESSAGING ===
+{messaging_context}
+
+Now create a complete GTM strategy with:
+
+1. Executive Summary:
+   - Strategy title
+   - Key insight
+   - Recommended approach
+   - Expected launch window
+   
+2. Market Opportunity:
+   - TAM/SAM/SOM sizing
+   - Market growth drivers
+   - Key assumptions
+   
+3. Target Segment Definition:
+   - Primary segment profile
+   - Segment sizing
+   - Penetration opportunity
+   
+4. Positioning Framework:
+   - Category positioning
+   - Key differentiators
+   - Brand personality
+   
+5. Channel Strategy (multi-channel mix):
+   - Primary channel
+   - Secondary channels
+   - Channel allocation %
+   - Success metrics per channel
+   
+6. Pricing Strategy:
+   - Recommended price point
+   - Rationale
+   - Competitive pricing analysis
+   - Patient access programs
+   
+7. Reimbursement Strategy:
+   - HTA approach
+   - Payer targeting
+   - Value story
+   - Managed access programs
+   
+8. Commercial Timeline:
+   - Pre-launch (months)
+   - Hard launch (activities)
+   - Scaling phase (6-12 months post-launch)
+   - Mature market phase
+   
+9. Resource Requirements:
+   - Sales team size needed
+   - Marketing budget
+   - Market access investment
+   - Key partnerships
+   
+10. Success Metrics & KPIs:
+    - Market share targets
+    - Revenue targets
+    - Payer coverage targets
+    - Key regional metrics
+    
+11. Key Risks & Mitigation:
+    - Market risk: mitigation
+    - Competitive risk: mitigation
+    - Regulatory risk: mitigation
+    - Payer risk: mitigation
+    - Commercial risk: mitigation
+    
+12. Competitive Moat:
+    - How we sustain advantage long-term
+
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
+- executive_summary (object with "summary" key)
+- market_opportunity (object with "overview" key)
+- target_segment (object with "segment" key)
+- positioning (object)
+- channel_strategy (object)
+- pricing_strategy (object with "approach", "price_low", "price_high" keys)
+- reimbursement_strategy (object with "approach" key)
+- timeline (object)
+- resources (object)
+- success_metrics (list of strings)
+- risks_and_mitigations (object: risk -> mitigation)
+- competitive_moat (string)

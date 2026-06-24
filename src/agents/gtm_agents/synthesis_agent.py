@@ -10,6 +10,7 @@ from src.schema.gtm_output import GTMOutputDocument
 from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, StrategyResponse
+from src.prompts import load_prompt
 from src.schema.agent_messages import create_agent_message, MESSAGE_TYPES
 from datetime import datetime
 
@@ -50,112 +51,15 @@ async def synthesis_agent(state: GTMState) -> GTMState:
         logger.info("🧠 Generating final GTM strategy with Claude...")
         llm = get_claude()
         
-        strategy_prompt = f"""
-You are a senior pharma GTM strategist. Synthesize all research into a comprehensive GTM strategy:
-
-DRUG: {state.drug_name}
-INDICATION: {state.indication}
-
-=== MARKET RESEARCH ===
-{market_context}
-
-=== PAYER INTELLIGENCE ===
-{payer_context}
-
-=== COMPETITIVE ANALYSIS ===
-{competitor_context}
-
-=== ICP DEFINITION ===
-{icp_context}
-
-=== POSITIONING & MESSAGING ===
-{messaging_context}
-
-Now create a complete GTM strategy with:
-
-1. Executive Summary:
-   - Strategy title
-   - Key insight
-   - Recommended approach
-   - Expected launch window
-   
-2. Market Opportunity:
-   - TAM/SAM/SOM sizing
-   - Market growth drivers
-   - Key assumptions
-   
-3. Target Segment Definition:
-   - Primary segment profile
-   - Segment sizing
-   - Penetration opportunity
-   
-4. Positioning Framework:
-   - Category positioning
-   - Key differentiators
-   - Brand personality
-   
-5. Channel Strategy (multi-channel mix):
-   - Primary channel
-   - Secondary channels
-   - Channel allocation %
-   - Success metrics per channel
-   
-6. Pricing Strategy:
-   - Recommended price point
-   - Rationale
-   - Competitive pricing analysis
-   - Patient access programs
-   
-7. Reimbursement Strategy:
-   - HTA approach
-   - Payer targeting
-   - Value story
-   - Managed access programs
-   
-8. Commercial Timeline:
-   - Pre-launch (months)
-   - Hard launch (activities)
-   - Scaling phase (6-12 months post-launch)
-   - Mature market phase
-   
-9. Resource Requirements:
-   - Sales team size needed
-   - Marketing budget
-   - Market access investment
-   - Key partnerships
-   
-10. Success Metrics & KPIs:
-    - Market share targets
-    - Revenue targets
-    - Payer coverage targets
-    - Key regional metrics
-    
-11. Key Risks & Mitigation:
-    - Market risk: mitigation
-    - Competitive risk: mitigation
-    - Regulatory risk: mitigation
-    - Payer risk: mitigation
-    - Commercial risk: mitigation
-    
-12. Competitive Moat:
-    - How we sustain advantage long-term
-
-Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
-
-Keys required:
-- executive_summary (object with "summary" key)
-- market_opportunity (object with "overview" key)
-- target_segment (object with "segment" key)
-- positioning (object)
-- channel_strategy (object)
-- pricing_strategy (object with "approach", "price_low", "price_high" keys)
-- reimbursement_strategy (object with "approach" key)
-- timeline (object)
-- resources (object)
-- success_metrics (list of strings)
-- risks_and_mitigations (object: risk -> mitigation)
-- competitive_moat (string)
-"""
+        strategy_prompt = load_prompt("synthesis").format(
+            drug_name=state.drug_name,
+            indication=state.indication,
+            market_context=market_context,
+            payer_context=payer_context,
+            competitor_context=competitor_context,
+            icp_context=icp_context,
+            messaging_context=messaging_context,
+        )
         
         try:
             response = await asyncio.to_thread(invoke_with_retry, llm, strategy_prompt)
