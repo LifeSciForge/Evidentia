@@ -4,7 +4,7 @@ Analyzes competitor landscape, positioning, and market threats
 """
 
 from typing import Dict, Any, List
-from src.schema.gtm_state import GTMState, CompetitorAnalysisData, CompetitorData, unavailable
+from src.schema.gtm_state import GTMState, CompetitorAnalysisData, CompetitorData, unavailable, web_source
 from src.service.tools.tavily_tools import tavily_search, search_competitor_news
 from src.service.tools.pubmed_tools import search_pubmed
 from src.core.llm import get_claude
@@ -40,8 +40,10 @@ async def competitor_analysis_agent(state: GTMState) -> GTMState:
         )
         
         competitor_insights = ""
+        _competitor_top_url: str | None = None
         if competitor_search.get("success"):
             competitor_insights = competitor_search.get("answer", "")
+            _competitor_top_url = competitor_search.get("top_url")  # from tool, never LLM
             logger.info("✅ Competitor overview retrieved")
         else:
             logger.warning("⚠️ Competitor search failed")
@@ -120,6 +122,9 @@ Use this exact structure:
                 if result.valid:
                     competitor_data_dict = result.data.model_dump()
                     logger.info("✅ Competitor analysis synthesized successfully")
+                    # Attach REAL provenance from the Tavily tool url (never from LLM text)
+                    if _competitor_top_url:
+                        state.sources["competitor.market"] = web_source(_competitor_top_url)
                 else:
                     logger.warning(f"⚠️ Validation errors: {result.errors}")
                     competitor_data_dict = get_default_competitor_data()
