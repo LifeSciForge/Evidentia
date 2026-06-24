@@ -3,13 +3,14 @@ Messaging & Positioning Agent
 Creates positioning framework and persona-specific messaging
 """
 
+import asyncio
 from typing import Dict, Any, Optional
 from src.schema.gtm_state import (
     GTMState, MessagingData, PersonaMessaging,
     MSLTalkingPoints, ClinicalPillar, ClinicalEvidence,
     KeyDifferentiator, AnticipatedObjection, Guardrail,
 )
-from src.core.llm import get_claude
+from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import (
     extract_json_from_text, validate_with_pydantic,
@@ -142,7 +143,7 @@ Return ONLY valid JSON:
 }}"""
 
     try:
-        response = llm.invoke(prompt)
+        response = await asyncio.to_thread(invoke_with_retry, llm, prompt)
         raw = extract_json_from_text(response.content)
 
         dp = raw.get("doctor_profile", {})
@@ -313,7 +314,7 @@ Keys required:
 """
         
         try:
-            response = llm.invoke(positioning_prompt)
+            response = await asyncio.to_thread(invoke_with_retry, llm, positioning_prompt)
             response_text = response.content
             try:
                 raw = extract_json_from_text(response_text)
@@ -330,17 +331,14 @@ Keys required:
         except Exception as e:
             logger.error(f"❌ LLM positioning error: {str(e)}")
             positioning_dict = get_default_positioning_data()
-        
-        # Step 2: Generate persona-specific messaging
-        logger.info("👥 Generating persona-specific messaging...")
-        
+
+        # Step 2: Generate persona-specific messaging concurrently
+        logger.info("👥 Generating persona-specific messaging concurrently...")
+
         personas = ["Chief Commercial Officer", "Head of Market Access", "HEOR Director", "Medical Affairs Lead"]
-        persona_messaging = {}
-        
-        for persona in personas:
-            logger.info(f"  Creating messaging for {persona}...")
-            
-            persona_prompt = f"""
+
+        def _build_persona_prompt(persona: str) -> str:
+            return f"""
 Create detailed messaging for a {persona} regarding {state.drug_name}:
 
 Positioning: {positioning_dict.get('positioning_statement', '')}
@@ -364,20 +362,26 @@ Keys required:
 - success_metrics (list of strings)
 - engagement_triggers (list of strings)
 """
-            
+
+        async def _invoke_persona(persona: str) -> Dict[str, Any]:
+            persona_prompt = _build_persona_prompt(persona)
             try:
-                persona_response = llm.invoke(persona_prompt)
+                persona_response = await asyncio.to_thread(invoke_with_retry, llm, persona_prompt)
                 persona_text = persona_response.content
                 try:
                     raw = extract_json_from_text(persona_text)
                     presult = validate_with_pydantic(raw, PersonaResponse)
-                    persona_data = presult.data.model_dump() if presult.valid else get_default_persona_data()
+                    return presult.data.model_dump() if presult.valid else get_default_persona_data()
                 except ValueError:
-                    persona_data = get_default_persona_data()
+                    return get_default_persona_data()
             except Exception as e:
                 logger.error(f"Error creating messaging for {persona}: {str(e)}")
-                persona_data = get_default_persona_data()
-            
+                return get_default_persona_data()
+
+        persona_results = await asyncio.gather(*[_invoke_persona(p) for p in personas])
+
+        persona_messaging = {}
+        for persona, persona_data in zip(personas, persona_results):
             persona_messaging[persona] = PersonaMessaging(
                 persona=persona,
                 role_description=persona_data.get("role_description", ""),
