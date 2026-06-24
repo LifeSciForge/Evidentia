@@ -45,7 +45,9 @@ def market_sizing_waterfall(tam, sam, som):
         textposition="outside",
         y=[tam, -sam, sam, -som, som],
         connector={"line": {"color": "rgba(63, 63, 63, 0.5)"}},
-        marker={"color": ["#5b5bd6", "#c2741b", "#1aa564", "#c2741b", "#5b5bd6"]}
+        increasing=dict(marker=dict(color="#1aa564")),
+        decreasing=dict(marker=dict(color="#c2741b")),
+        totals=dict(marker=dict(color="#5b5bd6")),
     ))
 
     fig.update_layout(

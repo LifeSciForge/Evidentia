@@ -39,3 +39,11 @@ def test_metric_card_embeds_optional_source_chip():
     html = metric_card_html("Addressable patients", "~13,000", source_html=chip)
     assert "ev-chip-verified" in html
     assert "SEER/NCI" in html
+
+
+def test_charts_build_without_error():
+    from types import SimpleNamespace
+    from src.ui.components import market_sizing_waterfall, competitor_positioning_scatter
+    assert market_sizing_waterfall(100, 60, 30) is not None
+    comps = [SimpleNamespace(competitor_name="A", pricing=1000, market_share=20, clinical_advantages=["x"])]
+    assert competitor_positioning_scatter(comps) is not None
