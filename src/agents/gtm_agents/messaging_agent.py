@@ -428,12 +428,16 @@ def extract_market_summary(market_data) -> str:
     """Extract market data summary"""
     if not market_data:
         return "Market data not available"
-    
+
+    tam_str = f"${market_data.tam_estimate:,.0f}M" if market_data.tam_estimate is not None else "N/A"
+    sam_str = f"${market_data.sam_estimate:,.0f}M" if market_data.sam_estimate is not None else "N/A"
+    som_str = f"${market_data.som_estimate:,.0f}M" if market_data.som_estimate is not None else "N/A"
+    pop_str = f"{market_data.patient_population:,}" if market_data.patient_population is not None else "N/A"
     return f"""
-TAM: ${market_data.tam_estimate:,.0f}M
-SAM: ${market_data.sam_estimate:,.0f}M
-SOM: ${market_data.som_estimate:,.0f}M
-Patient Population: {market_data.patient_population:,}
+TAM: {tam_str}
+SAM: {sam_str}
+SOM: {som_str}
+Patient Population: {pop_str}
 Market Drivers: {market_data.epidemiology.get('market_drivers', [])}
 """
 
@@ -467,11 +471,13 @@ def extract_payer_summary(payer_data) -> str:
     """Extract payer summary"""
     if not payer_data:
         return "Payer data not available"
-    
+
+    qaly_str = f"£{payer_data.qaly_threshold:,.0f}" if payer_data.qaly_threshold is not None else "N/A"
+    ceiling_str = f"${payer_data.pricing_ceiling:,.0f}" if payer_data.pricing_ceiling is not None else "N/A"
     return f"""
 HTA Status: {payer_data.hta_status}
-QALY Threshold: £{payer_data.qaly_threshold:,.0f}
-Pricing Ceiling: ${payer_data.pricing_ceiling:,.0f}
+QALY Threshold: {qaly_str}
+Pricing Ceiling: {ceiling_str}
 """
 
 
