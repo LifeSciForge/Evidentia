@@ -1,4 +1,4 @@
-"""
+r"""
 JSON Validator — SKILL_05
 Replaces bare re.search(r'\{.*\}') used in all 5 agents with:
   1. Balanced-brace JSON extraction (handles nested objects correctly)

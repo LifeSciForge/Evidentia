@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # ========================================================================
     ANTHROPIC_API_KEY: str
     OPENAI_API_KEY: Optional[str] = None
-    DEFAULT_MODEL: str = "claude-sonnet-4-20250514"
+    DEFAULT_MODEL: str = "claude-sonnet-4-6"  # Sonnet 4.6 (claude-sonnet-4-20250514 retired 2026-06-15)
     
     # ========================================================================
     # Ollama Configuration (Local LLM)
