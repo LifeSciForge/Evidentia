@@ -13,6 +13,7 @@ from src.agents.gtm_agents.icp_definition_agent import icp_definition_agent
 from src.agents.gtm_agents.messaging_agent import messaging_agent
 from src.agents.gtm_agents.synthesis_agent import synthesis_agent
 from src.core.logger import get_logger
+from src.service.cache.cache_manager import CacheManager, BRIEF_TTL
 import asyncio
 
 logger = get_logger(__name__)
@@ -20,10 +21,11 @@ logger = get_logger(__name__)
 
 class GTMWorkflow:
     """GTM Workflow Orchestrator"""
-    
+
     def __init__(self):
         self.graph = None
         self.app = None
+        self.cache = CacheManager()
         self._build_graph()
     
     def _build_graph(self):
@@ -78,6 +80,21 @@ class GTMWorkflow:
         """
         logger.info(f"Starting GTM Workflow for {drug_name} in {indication}")
 
+        # Build a stable cache key from all four inputs (None becomes the string
+        # "none" via make_key's str() conversion, which is fine — distinct from
+        # any real doctor/hospital name since real names never start with "none").
+        cache_key = self.cache.make_key(
+            "brief",
+            drug_name,
+            indication,
+            current_doctor or "",
+            current_hospital or "",
+        )
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            logger.info(f"Cache HIT for brief: {drug_name}/{indication} — returning cached state")
+            return cached
+
         initial_state = GTMState(
             drug_name=drug_name,
             indication=indication,
@@ -129,6 +146,11 @@ class GTMWorkflow:
             logger.info("✅ Workflow completed successfully")
             logger.info(f"📊 Agents completed: {final_state.agents_completed}")
             logger.info(f"🎯 Progress: {final_state.progress_percentage}%")
+
+            # Cache the successful final state using the 24-hour brief TTL.
+            # Error states are never cached (they are handled in the except block below).
+            self.cache.set(cache_key, final_state, ttl=BRIEF_TTL)
+            logger.info(f"Cache SET for brief: {drug_name}/{indication}")
 
             return final_state
 
