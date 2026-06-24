@@ -3,6 +3,7 @@ Market Research Agent
 Searches for market sizing, clinical trials, and epidemiology data
 """
 
+import asyncio
 from typing import Dict, Any
 from src.schema.gtm_state import (
     GTMState, MarketResearchData, unavailable,
@@ -12,7 +13,7 @@ from src.service.tools.clinical_trials_tools import search_clinical_trials, get_
 from src.service.tools.pubmed_tools import search_pubmed, search_clinical_trials_pubs
 from src.service.tools.tavily_tools import tavily_search, search_market_analysis, search_clinical_evidence
 from src.service.tools.epidemiology_tools import fetch_epidemiology_data
-from src.core.llm import get_claude
+from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, MarketResearchResponse
 
@@ -37,28 +38,40 @@ async def market_research_agent(state: GTMState) -> GTMState:
     state.agent_status = "running"
     
     try:
-        # Step 1: Search clinical trials
-        logger.info("📋 Searching clinical trials...")
-        trials_result = search_clinical_trials(
-            drug_name=state.drug_name,
-            condition=state.indication,
-            max_results=20
+        # Steps 1-4: Gather all independent tool calls concurrently
+        logger.info("📋 Searching clinical trials, PubMed, market analysis, and clinical evidence concurrently...")
+        trials_result, pubmed_result, market_analysis, evidence_result = await asyncio.gather(
+            asyncio.to_thread(
+                search_clinical_trials,
+                drug_name=state.drug_name,
+                condition=state.indication,
+                max_results=20,
+            ),
+            asyncio.to_thread(
+                search_pubmed,
+                drug_name=state.drug_name,
+                condition=state.indication,
+                max_results=20,
+            ),
+            asyncio.to_thread(
+                search_market_analysis,
+                indication=state.indication,
+                max_results=5,
+            ),
+            asyncio.to_thread(
+                search_clinical_evidence,
+                drug_name=state.drug_name,
+                indication=state.indication,
+                max_results=5,
+            ),
         )
-        
+
         trials_data = []
         if trials_result.get("success"):
             trials_data = trials_result.get("trials", [])
             logger.info(f"✅ Found {len(trials_data)} clinical trials")
         else:
             logger.warning(f"⚠️ Clinical trials search failed: {trials_result.get('error')}")
-        
-        # Step 2: Search PubMed for publications
-        logger.info("📚 Searching PubMed publications...")
-        pubmed_result = search_pubmed(
-            drug_name=state.drug_name,
-            condition=state.indication,
-            max_results=20
-        )
 
         publications = []
         _pubmed_top_url: str | None = None
@@ -71,14 +84,6 @@ async def market_research_agent(state: GTMState) -> GTMState:
         else:
             logger.warning(f"⚠️ PubMed search failed: {pubmed_result.get('error')}")
 
-
-        # Step 3: Search for market analysis
-        logger.info("📊 Searching market analysis...")
-        market_analysis = search_market_analysis(
-            indication=state.indication,
-            max_results=5
-        )
-
         market_insights = ""
         _market_top_url: str | None = None
         if market_analysis.get("success"):
@@ -88,21 +93,13 @@ async def market_research_agent(state: GTMState) -> GTMState:
         else:
             logger.warning(f"⚠️ Market analysis search failed")
 
-        # Step 4: Search for clinical evidence
-        logger.info("🔬 Searching clinical evidence...")
-        evidence_result = search_clinical_evidence(
-            drug_name=state.drug_name,
-            indication=state.indication,
-            max_results=5
-        )
-
         clinical_evidence = ""
         if evidence_result.get("success"):
             clinical_evidence = evidence_result.get("answer", "")
             logger.info("✅ Clinical evidence retrieved")
         else:
             logger.warning(f"⚠️ Clinical evidence search failed")
-        
+
         # Step 5: Use LLM to synthesize market sizing
         logger.info("🧠 Synthesizing market data with Claude...")
         llm = get_claude()
@@ -148,7 +145,7 @@ Keys required:
 """
         
         try:
-            response = llm.invoke(market_sizing_prompt)
+            response = await asyncio.to_thread(invoke_with_retry, llm, market_sizing_prompt)
             response_text = response.content
             try:
                 raw = extract_json_from_text(response_text)
