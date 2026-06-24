@@ -1,4 +1,4 @@
-from src.ui.components import source_chip_html
+from src.ui.components import source_chip_html, metric_card_html
 
 
 def test_verified_tier_renders_link_with_label_and_class():
@@ -24,3 +24,18 @@ def test_label_is_html_escaped():
 def test_unknown_tier_falls_back_to_unavailable_class():
     html = source_chip_html("bogus", "X")
     assert "ev-chip-unavailable" in html
+
+
+def test_metric_card_shows_label_value_and_no_gradient():
+    html = metric_card_html("Addressable patients", "~13,000")
+    assert "Addressable patients" in html
+    assert "~13,000" in html
+    assert "linear-gradient" not in html  # retired the purple gradient
+    assert "ev-metric-card" in html
+
+
+def test_metric_card_embeds_optional_source_chip():
+    chip = source_chip_html("verified", "SEER/NCI", url="https://seer.cancer.gov")
+    html = metric_card_html("Addressable patients", "~13,000", source_html=chip)
+    assert "ev-chip-verified" in html
+    assert "SEER/NCI" in html

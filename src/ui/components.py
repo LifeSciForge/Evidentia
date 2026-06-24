@@ -37,7 +37,7 @@ def source_chip(tier: str, label: str, url: str | None = None, note: str | None 
 
 def market_sizing_waterfall(tam, sam, som):
     """Create TAM/SAM/SOM waterfall chart"""
-    
+
     fig = go.Figure(go.Waterfall(
         name="Market Sizing",
         orientation="v",
@@ -45,23 +45,26 @@ def market_sizing_waterfall(tam, sam, som):
         textposition="outside",
         y=[tam, -sam, sam, -som, som],
         connector={"line": {"color": "rgba(63, 63, 63, 0.5)"}},
-        marker={"color": ["#1f77b4", "#ff7f0e", "#2ca02c", "#ff7f0e", "#d62728"]}
+        marker={"color": ["#5b5bd6", "#c2741b", "#1aa564", "#c2741b", "#5b5bd6"]}
     ))
-    
+
     fig.update_layout(
         title="Market Sizing Waterfall",
         yaxis_title="Market Size (USD Millions)",
         xaxis_title="Market Segments",
         height=400,
-        showlegend=False
+        showlegend=False,
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        font=dict(family="Inter", color="#1a1d29"),
     )
-    
+
     return fig
 
 
 def competitor_positioning_scatter(competitors):
     """Create competitor positioning scatter plot"""
-    
+
     data = []
     for comp in competitors:
         data.append({
@@ -70,9 +73,9 @@ def competitor_positioning_scatter(competitors):
             "Market_Share": comp.market_share or 0,
             "Clinical_Score": len(comp.clinical_advantages)
         })
-    
+
     df = pd.DataFrame(data)
-    
+
     fig = px.scatter(
         df,
         x="Price",
@@ -80,23 +83,37 @@ def competitor_positioning_scatter(competitors):
         size="Clinical_Score",
         hover_name="Name",
         title="Competitive Positioning Map",
-        labels={"Price": "Price Point ($)", "Market_Share": "Market Share (%)"}
+        labels={"Price": "Price Point ($)", "Market_Share": "Market Share (%)"},
+        color_discrete_sequence=["#5b5bd6"],
     )
-    
-    fig.update_layout(height=400)
-    
+
+    fig.update_layout(
+        height=400,
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        font=dict(family="Inter", color="#1a1d29"),
+    )
+
     return fig
 
 
-def metric_card(title, value, subtitle="", icon=""):
-    """Create a metric card"""
-    
-    html = f"""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin: 10px 0;">
-        <div style="font-size: 14px; opacity: 0.9;">{icon} {title}</div>
-        <div style="font-size: 32px; font-weight: bold; margin: 10px 0;">{value}</div>
-        <div style="font-size: 12px; opacity: 0.7;">{subtitle}</div>
-    </div>
-    """
-    
-    st.markdown(html, unsafe_allow_html=True)
+def metric_card_html(title: str, value: str, subtitle: str = "", source_html: str = "") -> str:
+    """Direction C metric card (no gradient). Optionally embeds a source chip."""
+    safe_title = _html.escape(title or "")
+    safe_value = _html.escape(str(value))
+    safe_sub = _html.escape(subtitle or "")
+    sub = f'<div class="ev-metric-sub">{safe_sub}</div>' if safe_sub else ""
+    chip = f'<div class="ev-metric-chip">{source_html}</div>' if source_html else ""
+    return (
+        f'<div class="ev-metric-card">'
+        f'<div class="ev-metric-label">{safe_title}</div>'
+        f'<div class="ev-metric-value">{safe_value}</div>'
+        f'{chip}{sub}</div>'
+    )
+
+
+def metric_card(title: str, value: str, subtitle: str = "", icon: str = "", source_html: str = "") -> None:
+    """Render a metric card. `icon` kept for backward compatibility (prefixed to title)."""
+    title_text = f"{icon} {title}".strip() if icon else title
+    st.markdown(metric_card_html(title_text, value, subtitle=subtitle, source_html=source_html),
+                unsafe_allow_html=True)
