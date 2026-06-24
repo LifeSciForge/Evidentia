@@ -4,7 +4,7 @@ Defines Ideal Customer Profile based on market and competitive data
 """
 
 from typing import Dict, Any
-from src.schema.gtm_state import GTMState, ICPProfile
+from src.schema.gtm_state import GTMState, ICPProfile, unavailable
 from src.service.tools.tavily_tools import tavily_search
 from src.core.llm import get_claude
 from src.core.logger import get_logger
@@ -38,26 +38,30 @@ async def icp_definition_agent(state: GTMState) -> GTMState:
         
         # Extract key data for ICP analysis
         market_context = {
-            "tam": state.market_data.tam_estimate if state.market_data else 0,
-            "patient_population": state.market_data.patient_population if state.market_data else 0,
+            "tam": state.market_data.tam_estimate if state.market_data else None,
+            "patient_population": state.market_data.patient_population if state.market_data else None,
             "epidemiology": state.market_data.epidemiology if state.market_data else {}
         }
-        
+
         competitor_context = {
             "competitor_count": len(state.competitor_data.competitors) if state.competitor_data else 0,
             "gaps": state.competitor_data.competitive_gaps if state.competitor_data else {},
             "opportunities": state.competitor_data.competitive_opportunities if state.competitor_data else []
         }
-        
+
         payer_context = {
             "hta_status": state.payer_data.hta_status if state.payer_data else "Unknown",
-            "qaly_threshold": state.payer_data.qaly_threshold if state.payer_data else 30000
+            "qaly_threshold": state.payer_data.qaly_threshold if state.payer_data else None
         }
-        
+
+        tam_str = f"${market_context['tam']:,.0f}M" if market_context['tam'] is not None else "N/A"
+        pop_str = f"{market_context['patient_population']:,}" if market_context['patient_population'] is not None else "N/A"
+        qaly_str = f"£{payer_context['qaly_threshold']:,.0f}" if payer_context['qaly_threshold'] is not None else "N/A"
+
         # Step 1: Use LLM to define ICP
         logger.info("🧠 Defining ICP with Claude...")
         llm = get_claude()
-        
+
         icp_prompt = f"""
 You are a pharma GTM strategist. Based on the market analysis, define the Ideal Customer Profile (ICP) for sales and market access teams:
 
@@ -65,8 +69,8 @@ Drug: {state.drug_name}
 Indication: {state.indication}
 
 Market Context:
-- TAM: ${market_context['tam']:,.0f}M
-- Patient Population: {market_context['patient_population']:,}
+- TAM: {tam_str}
+- Patient Population: {pop_str}
 - Market Drivers: {safe_join(market_context['epidemiology'].get('market_drivers', []))}
 
 Competitive Context:
@@ -76,7 +80,7 @@ Competitive Context:
 
 Payer Context:
 - HTA Status: {payer_context['hta_status']}
-- QALY Threshold: £{payer_context['qaly_threshold']:,.0f}
+- QALY Threshold: {qaly_str}
 
 Please define:
 
@@ -136,12 +140,15 @@ Keys required:
                 else:
                     logger.warning(f"⚠️ ICP validation errors: {result.errors}")
                     icp_data_dict = get_default_icp_data()
+                    state.sources["icp.tam_by_segment"] = unavailable("Not available from sources — validation failed")
             except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 icp_data_dict = get_default_icp_data()
+                state.sources["icp.tam_by_segment"] = unavailable("Not available from sources — JSON extraction failed")
         except Exception as e:
             logger.error(f"❌ LLM synthesis error: {str(e)}")
             icp_data_dict = get_default_icp_data()
+            state.sources["icp.tam_by_segment"] = unavailable(f"Not available from sources — LLM error: {str(e)}")
         
         # Step 4: Build ICP profile object
         primary_icp = icp_data_dict.get("primary_icp", {})
@@ -232,9 +239,6 @@ def get_default_icp_data() -> Dict[str, Any]:
             "Payer feedback requiring solution"
         ],
         "geography_priority": ["US", "EU", "UK", "APAC"],
-        "tam_by_segment": {
-            "large_pharma": 75000000,
-            "mid_size": 25000000
-        },
+        "tam_by_segment": {},
         "icp_summary": "Large integrated pharma with commercial scale and payer relationships"
     }
