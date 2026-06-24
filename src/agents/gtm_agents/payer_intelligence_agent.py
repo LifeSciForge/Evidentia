@@ -3,11 +3,12 @@ Payer Intelligence Agent
 Searches for HTA decisions, reimbursement criteria, and payer feedback
 """
 
+import asyncio
 from typing import Dict, Any
 from src.schema.gtm_state import GTMState, PayerIntelligenceData, unavailable, web_source
 from src.service.tools.pubmed_tools import search_hta_pubs
 from src.service.tools.tavily_tools import tavily_search, search_payer_coverage, search_pricing_information
-from src.core.llm import get_claude
+from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, PayerResponse
 
@@ -32,28 +33,39 @@ async def payer_intelligence_agent(state: GTMState) -> GTMState:
     state.agent_status = "running"
     
     try:
-        # Step 1: Search HTA publications
-        logger.info("📋 Searching HTA publications...")
-        hta_result = search_hta_pubs(
-            drug_name=state.drug_name,
-            max_results=10
+        # Steps 1-4: Gather all independent tool calls concurrently
+        logger.info("📋 Searching HTA pubs, payer coverage, pricing, and regulatory decisions concurrently...")
+        hta_result, payer_coverage, pricing_result, regulatory_search = await asyncio.gather(
+            asyncio.to_thread(
+                search_hta_pubs,
+                drug_name=state.drug_name,
+                max_results=10,
+            ),
+            asyncio.to_thread(
+                search_payer_coverage,
+                drug_name=state.drug_name,
+                region="US",
+                max_results=5,
+            ),
+            asyncio.to_thread(
+                search_pricing_information,
+                drug_name=state.drug_name,
+                max_results=5,
+            ),
+            asyncio.to_thread(
+                tavily_search,
+                query=f"{state.drug_name} NICE EMA ICER decision reimbursement 2025 2026",
+                max_results=5,
+            ),
         )
-        
+
         hta_publications = []
         if hta_result.get("success"):
             hta_publications = hta_result.get("publications", [])
             logger.info(f"✅ Found {len(hta_publications)} HTA publications")
         else:
             logger.warning(f"⚠️ HTA search failed")
-        
-        # Step 2: Search payer coverage information
-        logger.info("🏥 Searching payer coverage information...")
-        payer_coverage = search_payer_coverage(
-            drug_name=state.drug_name,
-            region="US",
-            max_results=5
-        )
-        
+
         coverage_insights = ""
         _payer_top_url: str | None = None
         if payer_coverage.get("success"):
@@ -63,13 +75,6 @@ async def payer_intelligence_agent(state: GTMState) -> GTMState:
         else:
             logger.warning("⚠️ Payer coverage search failed")
 
-        # Step 3: Search pricing information
-        logger.info("💵 Searching pricing information...")
-        pricing_result = search_pricing_information(
-            drug_name=state.drug_name,
-            max_results=5
-        )
-
         pricing_insights = ""
         _pricing_top_url: str | None = None
         if pricing_result.get("success"):
@@ -78,21 +83,14 @@ async def payer_intelligence_agent(state: GTMState) -> GTMState:
             logger.info("✅ Pricing data retrieved")
         else:
             logger.warning("⚠️ Pricing search failed")
-        
-        # Step 4: Search for NICE/EMA/ICER decisions
-        logger.info("🔍 Searching regulatory payer decisions...")
-        regulatory_search = tavily_search(
-            query=f"{state.drug_name} NICE EMA ICER decision reimbursement 2025 2026",
-            max_results=5
-        )
-        
+
         regulatory_insights = ""
         if regulatory_search.get("success"):
             regulatory_insights = regulatory_search.get("answer", "")
             logger.info("✅ Regulatory payer data retrieved")
         else:
             logger.warning("⚠️ Regulatory search failed")
-        
+
         # Step 5: Use LLM to synthesize payer strategy
         logger.info("🧠 Synthesizing payer intelligence with Claude...")
         llm = get_claude()
@@ -139,7 +137,7 @@ Keys required:
 """
         
         try:
-            response = llm.invoke(payer_prompt)
+            response = await asyncio.to_thread(invoke_with_retry, llm, payer_prompt)
             response_text = response.content
             try:
                 raw = extract_json_from_text(response_text)
