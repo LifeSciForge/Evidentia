@@ -4,7 +4,7 @@ Assembles all agent outputs into final GTM strategy
 """
 
 from typing import Dict, Any
-from src.schema.gtm_state import GTMState, GTMStrategy
+from src.schema.gtm_state import GTMState, GTMStrategy, unavailable
 from src.schema.gtm_output import GTMOutputDocument
 from src.core.llm import get_claude
 from src.core.logger import get_logger
@@ -168,12 +168,15 @@ Keys required:
                 else:
                     logger.warning(f"⚠️ Strategy validation errors: {result.errors}")
                     strategy_dict = get_default_strategy_data()
+                    state.sources["strategy.pricing"] = unavailable("Not available from sources — validation failed")
             except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 strategy_dict = get_default_strategy_data()
+                state.sources["strategy.pricing"] = unavailable("Not available from sources — JSON extraction failed")
         except Exception as e:
             logger.error(f"❌ LLM strategy synthesis error: {str(e)}")
             strategy_dict = get_default_strategy_data()
+            state.sources["strategy.pricing"] = unavailable(f"Not available from sources — LLM error: {str(e)}")
         
         # Step 2: Build GTMStrategy object
         gtm_strategy = GTMStrategy(
@@ -238,12 +241,16 @@ def format_market_context(market_data) -> str:
     """Format market data for synthesis prompt"""
     if not market_data:
         return "Market data not available"
-    
+
+    tam_str = f"${market_data.tam_estimate:,.0f}M" if market_data.tam_estimate is not None else "N/A"
+    sam_str = f"${market_data.sam_estimate:,.0f}M" if market_data.sam_estimate is not None else "N/A"
+    som_str = f"${market_data.som_estimate:,.0f}M" if market_data.som_estimate is not None else "N/A"
+    pop_str = f"{market_data.patient_population:,}" if market_data.patient_population is not None else "N/A"
     return f"""
-TAM: ${market_data.tam_estimate:,.0f}M
-SAM: ${market_data.sam_estimate:,.0f}M
-SOM: ${market_data.som_estimate:,.0f}M
-Patient Population: {market_data.patient_population:,}
+TAM: {tam_str}
+SAM: {sam_str}
+SOM: {som_str}
+Patient Population: {pop_str}
 Clinical Trials Analyzed: {len(market_data.clinical_trials)}
 Key Publications: {len(market_data.key_publications)}
 Market Drivers: {market_data.epidemiology.get('market_drivers', [])}
@@ -254,11 +261,13 @@ def format_payer_context(payer_data) -> str:
     """Format payer data for synthesis prompt"""
     if not payer_data:
         return "Payer data not available"
-    
+
+    qaly_str = f"£{payer_data.qaly_threshold:,.0f}" if payer_data.qaly_threshold is not None else "N/A"
+    ceiling_str = f"${payer_data.pricing_ceiling:,.0f}" if payer_data.pricing_ceiling is not None else "N/A"
     return f"""
 HTA Status: {payer_data.hta_status}
-QALY Threshold: £{payer_data.qaly_threshold:,.0f}
-Pricing Ceiling: ${payer_data.pricing_ceiling:,.0f}
+QALY Threshold: {qaly_str}
+Pricing Ceiling: {ceiling_str}
 Reimbursement Criteria: {payer_data.reimbursement_criteria}
 Access Restrictions: {payer_data.access_restrictions}
 """
@@ -268,9 +277,14 @@ def format_competitor_context(competitor_data) -> str:
     """Format competitor data for synthesis prompt"""
     if not competitor_data:
         return "Competitor data not available"
-    
+
+    if not competitor_data.competitors:
+        return "No verified competitor data available"
+
     comp_summary = "\n".join([
-        f"- {c.competitor_name} (${c.pricing:,.0f}, {c.market_share}% share)"
+        f"- {c.competitor_name} ("
+        f"{'${:,.0f}'.format(c.pricing) if c.pricing is not None else 'pricing N/A'}, "
+        f"{c.market_share if c.market_share is not None else 'N/A'}% share)"
         for c in competitor_data.competitors[:3]
     ])
     
@@ -355,8 +369,8 @@ def get_default_strategy_data() -> Dict[str, Any]:
         },
         "pricing_strategy": {
             "approach": "Value-based pricing",
-            "price_low": 40000,
-            "price_high": 60000
+            "price_low": None,
+            "price_high": None
         },
         "reimbursement_strategy": {
             "approach": "HTA submission with health economics"
@@ -366,10 +380,7 @@ def get_default_strategy_data() -> Dict[str, Any]:
             "launch": "Month 7-9",
             "scaling": "Month 10-12"
         },
-        "resources": {
-            "sales_team": 50,
-            "marketing_budget": 5000000
-        },
+        "resources": {},
         "success_metrics": [
             "Market share target",
             "Revenue target",
