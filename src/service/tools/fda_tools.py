@@ -179,6 +179,24 @@ class FDAClient:
             }
 
 
+def source_from_fda_approval(approval: dict):
+    """Build a verified Source from an FDA approval record, or None if insufficient."""
+    if not approval:
+        return None
+    app_no = approval.get("application_number") or approval.get("application_no")
+    brand = approval.get("brand_name") or approval.get("brand")
+    if not app_no:
+        return None
+    # Import lazily to avoid any potential circular import
+    from src.schema.gtm_state import verified_source
+    url = (
+        f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm"
+        f"?event=overview.process&ApplNo={app_no}"
+    )
+    label = f"FDA: {brand}" if brand else "FDA approval"
+    return verified_source(label, url)
+
+
 # Convenience functions
 def get_drug_approvals(drug_name: str, max_results: int = 10) -> Dict[str, Any]:
     """Get drug approvals"""

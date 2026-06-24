@@ -2,13 +2,29 @@
 Tavily Web Search Tools
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Tuple
+from urllib.parse import urlparse
 from tavily import TavilyClient
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from src.core.settings import settings
 from src.core.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _tavily_domain(url: str) -> str:
+    host = urlparse(url).netloc.lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def extract_top_source(raw: dict) -> Tuple[Optional[str], Optional[str]]:
+    """Return (top_url, top_domain) from a raw Tavily response, or (None, None)."""
+    results = (raw or {}).get("results") or []
+    for item in results:
+        url = (item or {}).get("url")
+        if url:
+            return url, _tavily_domain(url)
+    return None, None
 
 
 class TavilySearchClient:
@@ -36,10 +52,13 @@ class TavilySearchClient:
         """General web search with automatic retry (3 attempts, exponential backoff)."""
         try:
             result = self._search_with_retry(query, max_results)
+            top_url, top_domain = extract_top_source(result)
             return {
                 "success": True,
                 "answer": result.get("answer", ""),
-                "results": result.get("results", [])
+                "results": result.get("results", []),
+                "top_url": top_url,
+                "top_domain": top_domain,
             }
         except Exception as e:
             logger.error(f"Tavily search error after retries: {str(e)}")
