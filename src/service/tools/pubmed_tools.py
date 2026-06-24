@@ -15,6 +15,11 @@ logger = get_logger(__name__)
 Entrez.email = "gtm-simulator@pharma.ai"
 
 
+def pmid_url(pmid: str) -> str:
+    """Return the canonical PubMed URL for a given PMID."""
+    return f"https://pubmed.ncbi.nlm.nih.gov/{str(pmid)}/"
+
+
 class PubMedClient:
     """Client for PubMed literature search"""
 
@@ -143,7 +148,7 @@ class PubMedClient:
                 "publication_year": pub_date,
                 "abstract": abstract[:500] if abstract else "",  # First 500 chars
                 "mesh_terms": mesh_terms[:10],  # First 10 MeSH terms
-                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                "url": pmid_url(pmid)
             }
         except Exception as e:
             logger.error(f"Error parsing article: {str(e)}")

@@ -12,6 +12,11 @@ logger = get_logger(__name__)
 BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 
 
+def nct_url(nct_id: str) -> str:
+    """Return the canonical ClinicalTrials.gov URL for a given NCT ID."""
+    return f"https://clinicaltrials.gov/study/{nct_id}"
+
+
 class ClinicalTrialsClient:
     """Client for ClinicalTrials.gov API v2"""
 
@@ -164,8 +169,9 @@ class ClinicalTrialsClient:
             status = status_module.get("overallStatus", "")
             key_insight = f"{phase} study, {status}. {primary_endpoint}"
             
-            return {
-                "nct_id": id_module.get("nctId", "N/A"),
+            _nct_id = id_module.get("nctId", "N/A")
+            record = {
+                "nct_id": _nct_id,
                 "title": id_module.get("briefTitle", "N/A"),
                 "status": status_module.get("overallStatus", "N/A"),
                 "phase": phase if phase else "N/A",
@@ -176,6 +182,9 @@ class ClinicalTrialsClient:
                 "primary_endpoint": primary_endpoint,
                 "key_insight": key_insight
             }
+            if _nct_id and _nct_id != "N/A":
+                record["url"] = nct_url(_nct_id)
+            return record
         except Exception as e:
             logger.error(f"Error parsing trial: {str(e)}")
             return {}
