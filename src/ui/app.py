@@ -14,6 +14,7 @@ import json
 from src.agents.gtm_workflow import create_gtm_workflow
 from src.core.logger import get_logger
 from src.ui.components import metric_card
+from src.service.validators.input_validator import InputValidator
 
 logger = get_logger(__name__)
 
@@ -572,6 +573,13 @@ def main():
     # ========================================================================
     
     if generate_brief:
+        try:
+            drug_name = InputValidator.validate_drug_name(drug_name)
+            indication = InputValidator.validate_indication(indication)
+        except ValueError as e:
+            st.error(f"Please fix your input: {e}")
+            st.stop()
+
         st.session_state.workflow_running = True
         st.session_state.drug_name = drug_name
         st.session_state.indication = indication
