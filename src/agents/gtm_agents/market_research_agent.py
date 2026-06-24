@@ -4,7 +4,10 @@ Searches for market sizing, clinical trials, and epidemiology data
 """
 
 from typing import Dict, Any
-from src.schema.gtm_state import GTMState, MarketResearchData, unavailable
+from src.schema.gtm_state import (
+    GTMState, MarketResearchData, unavailable,
+    web_source, verified_source, modeled, SourcedValue, Source,
+)
 from src.service.tools.clinical_trials_tools import search_clinical_trials, get_sponsor_trials
 from src.service.tools.pubmed_tools import search_pubmed, search_clinical_trials_pubs
 from src.service.tools.tavily_tools import tavily_search, search_market_analysis, search_clinical_evidence
@@ -56,29 +59,35 @@ async def market_research_agent(state: GTMState) -> GTMState:
             condition=state.indication,
             max_results=20
         )
-        
+
         publications = []
+        _pubmed_top_url: str | None = None
         if pubmed_result.get("success"):
             publications = pubmed_result.get("publications", [])
             logger.info(f"✅ Found {len(publications)} publications")
+            # Capture the URL of the first publication for provenance (comes from the tool, not LLM)
+            if publications:
+                _pubmed_top_url = publications[0].get("url")
         else:
             logger.warning(f"⚠️ PubMed search failed: {pubmed_result.get('error')}")
-        
-        
+
+
         # Step 3: Search for market analysis
         logger.info("📊 Searching market analysis...")
         market_analysis = search_market_analysis(
             indication=state.indication,
             max_results=5
         )
-        
+
         market_insights = ""
+        _market_top_url: str | None = None
         if market_analysis.get("success"):
             market_insights = market_analysis.get("answer", "")
+            _market_top_url = market_analysis.get("top_url")  # from tool, never LLM
             logger.info("✅ Market analysis data retrieved")
         else:
             logger.warning(f"⚠️ Market analysis search failed")
-        
+
         # Step 4: Search for clinical evidence
         logger.info("🔬 Searching clinical evidence...")
         evidence_result = search_clinical_evidence(
@@ -86,7 +95,7 @@ async def market_research_agent(state: GTMState) -> GTMState:
             indication=state.indication,
             max_results=5
         )
-        
+
         clinical_evidence = ""
         if evidence_result.get("success"):
             clinical_evidence = evidence_result.get("answer", "")
@@ -147,6 +156,9 @@ Keys required:
                 if result.valid:
                     market_data_dict = result.data.model_dump()
                     logger.info("✅ Market data synthesized successfully")
+                    # --- Attach REAL provenance from tool results (never from LLM text) ---
+                    _attach_market_sources(state, market_data_dict,
+                                           _market_top_url, _pubmed_top_url)
                 else:
                     logger.warning(f"⚠️ Validation errors: {result.errors}")
                     market_data_dict = get_default_market_data()
@@ -244,6 +256,59 @@ def format_publications_for_storage(publications: list) -> list:
         }
         for pub in publications[:10]
     ]
+
+
+def _attach_market_sources(
+    state: GTMState,
+    market_data_dict: Dict[str, Any],
+    market_top_url: str | None,
+    pubmed_top_url: str | None,
+) -> None:
+    """Attach provenance from REAL tool results only — never from LLM text.
+
+    Rules:
+    - market.market_figure: prefer Tavily market-analysis url (web_source).
+      If absent but we have a patient_population and a tam_estimate, build a
+      modeled SourcedValue and record its source.
+    - market.patient_population: prefer PubMed url (verified_source); fall
+      back to Tavily market url if no pubmed url; else leave unchanged (5a
+      already set unavailable on the fallback path, so only reach here on
+      success, meaning we may simply not have a url for this specific field).
+    """
+    try:
+        pat_pop = market_data_dict.get("patient_population")
+        tam = market_data_dict.get("tam_estimate")
+
+        # --- market.patient_population ---
+        if pubmed_top_url:
+            state.sources["market.patient_population"] = verified_source(
+                "PubMed", pubmed_top_url
+            )
+        elif market_top_url:
+            state.sources["market.patient_population"] = web_source(market_top_url)
+        # else: no url available for this field on this run; leave as-is
+
+        # --- market.market_figure ---
+        if market_top_url:
+            # A real market-analysis URL was returned by the tool
+            state.sources["market.market_figure"] = web_source(market_top_url)
+        elif pat_pop and tam:
+            # No published market figure URL, but we can model from sourced inputs
+            pop_source_obj: Source = state.sources.get(
+                "market.patient_population",
+                unavailable("patient population source unknown"),
+            )
+            pop_sv = SourcedValue(value=pat_pop, source=pop_source_obj,
+                                  display=str(pat_pop))
+            # tam is in millions; build a rough annual-cost proxy label
+            display_str = f"~${tam:,.0f}M (modeled)"
+            mv = modeled(value=tam, display=display_str, inputs=[pop_sv])
+            state.sources["market.market_figure"] = mv.source
+        # else: leave unavailable (set by 5a fallback or not yet set)
+
+    except Exception:
+        # Never crash the agent due to provenance bookkeeping
+        pass
 
 
 def _mark_market_unavailable(state: GTMState, reason: str) -> None:
