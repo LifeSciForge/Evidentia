@@ -11,7 +11,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import streamlit as st
-from src.core.preflight import missing_required_secrets
+from src.core.preflight import missing_required_secrets, load_dotenv_into_environ
+
+# Local runs keep secrets in .env; Streamlit Cloud injects them as env vars.
+# Load .env first (no-op on the cloud) so the pre-flight check sees local keys.
+load_dotenv_into_environ(Path(__file__).parent / ".env")
 
 # Pre-flight: fail clearly (not a white-screen crash) if required secrets are absent.
 _missing = missing_required_secrets(os.environ)
