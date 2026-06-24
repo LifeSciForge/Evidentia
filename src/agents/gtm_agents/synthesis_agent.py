@@ -226,7 +226,7 @@ Keys required:
         
         logger.info("✅ Synthesis Agent completed successfully")
         logger.info(f"🎯 Final GTM Strategy Generated")
-        logger.info(f"📊 Market Opportunity: ${state.final_gtm_strategy.market_sizing.get('tam', 0):,.0f}M TAM")
+        logger.info(f"📊 Market Opportunity: ${(state.final_gtm_strategy.market_sizing.get('tam') or 0):,.0f}M TAM")
         logger.info(f"👥 All 6 agents completed: {state.agents_completed}")
         
         return state
