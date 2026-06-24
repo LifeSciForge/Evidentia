@@ -4,7 +4,7 @@ Analyzes competitor landscape, positioning, and market threats
 """
 
 from typing import Dict, Any, List
-from src.schema.gtm_state import GTMState, CompetitorAnalysisData, CompetitorData
+from src.schema.gtm_state import GTMState, CompetitorAnalysisData, CompetitorData, unavailable
 from src.service.tools.tavily_tools import tavily_search, search_competitor_news
 from src.service.tools.pubmed_tools import search_pubmed
 from src.core.llm import get_claude
@@ -123,12 +123,15 @@ Use this exact structure:
                 else:
                     logger.warning(f"⚠️ Validation errors: {result.errors}")
                     competitor_data_dict = get_default_competitor_data()
+                    state.sources["competitor.market"] = unavailable("No verified competitor data — validation failed")
             except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 competitor_data_dict = get_default_competitor_data()
+                state.sources["competitor.market"] = unavailable("No verified competitor data — JSON extraction failed")
         except Exception as e:
             logger.error(f"❌ LLM synthesis error: {str(e)}")
             competitor_data_dict = get_default_competitor_data()
+            state.sources["competitor.market"] = unavailable(f"No verified competitor data — LLM error: {str(e)}")
         
         # Step 4: Build competitor objects
         competitors_list = []
@@ -176,22 +179,16 @@ Use this exact structure:
 
 
 def get_default_competitor_data() -> Dict[str, Any]:
-    """Return default competitor data when synthesis fails"""
+    """Return honest empty fallback when competitor synthesis fails.
+
+    No invented competitor names, market-share figures, or pricing — those are
+    the values that must never appear as if real when we have no verified data.
+    Generic guidance text (strategy, threats, opportunities) is kept because it
+    contains no fabricated numbers.
+    """
     return {
-        "competitors": [
-            {
-                "name": "Competitor 1",
-                "company": "Unknown",
-                "market_share": 30.0,
-                "pricing": 50000,
-                "key_differentiators": ["Requires additional research"],
-                "clinical_advantages": ["Requires additional research"],
-                "clinical_disadvantages": ["Requires additional research"],
-                "launch_date": "Unknown",
-                "annual_sales": 0
-            }
-        ],
-        "competitive_gaps": {"gap_1": "Requires additional research"},
+        "competitors": [],
+        "competitive_gaps": {},
         "positioning_strategy": "Differentiate on efficacy and safety",
         "threats": ["Well-established competitors"],
         "opportunities": ["Market expansion", "Unmet medical need fulfillment"]
