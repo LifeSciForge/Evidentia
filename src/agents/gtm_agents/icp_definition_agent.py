@@ -11,6 +11,7 @@ from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.utils.formatters import safe_join, safe_format_list
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, ICPResponse
+from src.prompts import load_prompt
 
 logger = get_logger(__name__)
 
@@ -63,71 +64,24 @@ async def icp_definition_agent(state: GTMState) -> GTMState:
         logger.info("🧠 Defining ICP with Claude...")
         llm = get_claude()
 
-        icp_prompt = f"""
-You are a pharma GTM strategist. Based on the market analysis, define the Ideal Customer Profile (ICP) for sales and market access teams:
+        market_drivers_str = safe_join(market_context['epidemiology'].get('market_drivers', []))
+        competitor_count = competitor_context['competitor_count']
+        market_gaps = competitor_context['gaps']
+        opportunities_str = safe_join(competitor_context['opportunities'])
+        hta_status = payer_context['hta_status']
 
-Drug: {state.drug_name}
-Indication: {state.indication}
-
-Market Context:
-- TAM: {tam_str}
-- Patient Population: {pop_str}
-- Market Drivers: {safe_join(market_context['epidemiology'].get('market_drivers', []))}
-
-Competitive Context:
-- Competitor Count: {competitor_context['competitor_count']}
-- Market Gaps: {competitor_context['gaps']}
-- Opportunities: {safe_join(competitor_context['opportunities'])}
-
-Payer Context:
-- HTA Status: {payer_context['hta_status']}
-- QALY Threshold: {qaly_str}
-
-Please define:
-
-1. Primary ICP:
-   - Company size (revenue range)
-   - Company type (integrated pharma, biotech, CRO, etc.)
-   - Therapeutic area focus
-   - Geographic focus
-   - Key decision-makers (roles)
-   
-2. Secondary ICP:
-   - Alternative company profiles
-   - Expansion opportunities
-   
-3. Buying Committee:
-   - Chief Commercial Officer (influence: 0-100)
-   - Head of Market Access (influence: 0-100)
-   - HEOR Director (influence: 0-100)
-   - Medical Affairs Lead (influence: 0-100)
-   - Payer Relations Manager (influence: 0-100)
-   
-4. Urgency Triggers:
-   - What makes them buy NOW vs later?
-   - Regulatory milestones
-   - Competitive threats
-   - Clinical evidence needs
-   
-5. Geography Prioritization:
-   - Rank: US, EU, UK, APAC, Rest of World
-   - Rationale for each
-   
-6. TAM by Segment:
-   - Estimate addressable market by primary segment
-   - Estimate by secondary segment
-
-Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
-
-Keys required:
-- primary_icp (object)
-- secondary_icp (object)
-- buying_committee (object with role names as keys and influence scores as string values)
-- urgency_triggers (list of strings)
-- geography_priority (list of strings)
-- tam_by_segment (object with segment names as keys and USD values as floats)
-- icp_summary (string)
-"""
+        icp_prompt = load_prompt("icp_definition").format(
+            drug_name=state.drug_name,
+            indication=state.indication,
+            tam_str=tam_str,
+            pop_str=pop_str,
+            market_drivers_str=market_drivers_str,
+            competitor_count=competitor_count,
+            market_gaps=market_gaps,
+            opportunities_str=opportunities_str,
+            hta_status=hta_status,
+            qaly_str=qaly_str,
+        )
         
         try:
             response = await asyncio.to_thread(invoke_with_retry, llm, icp_prompt)
