@@ -11,6 +11,7 @@ from src.service.tools.tavily_tools import tavily_search, search_payer_coverage,
 from src.core.llm import get_claude, invoke_with_retry
 from src.core.logger import get_logger
 from src.service.validators.json_validator import extract_json_from_text, validate_with_pydantic, PayerResponse
+from src.prompts import load_prompt
 
 logger = get_logger(__name__)
 
@@ -94,47 +95,19 @@ async def payer_intelligence_agent(state: GTMState) -> GTMState:
         # Step 5: Use LLM to synthesize payer strategy
         logger.info("🧠 Synthesizing payer intelligence with Claude...")
         llm = get_claude()
-        
-        payer_prompt = f"""
-You are a pharma reimbursement and market access strategist. Based on the following data, provide payer intelligence:
 
-Drug: {state.drug_name}
-Indication: {state.indication}
+        n_hta_publications = len(hta_publications)
+        hta_summary = format_hta_summary(hta_publications)
 
-HTA Publications Found: {len(hta_publications)}
-Key HTA Insights:
-{format_hta_summary(hta_publications)}
-
-Payer Coverage Insights:
-{coverage_insights}
-
-Pricing Information:
-{pricing_insights}
-
-Regulatory Payer Decisions:
-{regulatory_insights}
-
-Please provide reimbursement strategy recommendations:
-1. Current HTA status (NICE, EMA, ICER if available)
-2. Likely QALY threshold for reimbursement
-3. Pricing ceiling based on market comparisons
-4. Key reimbursement barriers
-5. Reimbursement solutions and access programs
-6. Geographic prioritization for payer targeting
-7. Managed access program recommendations
-
-Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
-
-Keys required:
-- hta_status (string: e.g., "Recommended", "Not recommended", "Under review")
-- qaly_threshold (float, in pounds/euros per QALY)
-- pricing_ceiling (float, in USD)
-- reimbursement_barriers (list of strings)
-- reimbursement_solutions (list of strings)
-- geography_priority (list of strings: e.g., ["US", "EU", "UK"])
-- managed_access_programs (list of strings)
-- payer_feedback_summary (string)
-"""
+        payer_prompt = load_prompt("payer_intelligence").format(
+            drug_name=state.drug_name,
+            indication=state.indication,
+            n_hta_publications=n_hta_publications,
+            hta_summary=hta_summary,
+            coverage_insights=coverage_insights,
+            pricing_insights=pricing_insights,
+            regulatory_insights=regulatory_insights,
+        )
         
         try:
             response = await asyncio.to_thread(invoke_with_retry, llm, payer_prompt)

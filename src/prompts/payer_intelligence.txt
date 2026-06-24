@@ -1,0 +1,39 @@
+
+You are a pharma reimbursement and market access strategist. Based on the following data, provide payer intelligence:
+
+Drug: {drug_name}
+Indication: {indication}
+
+HTA Publications Found: {n_hta_publications}
+Key HTA Insights:
+{hta_summary}
+
+Payer Coverage Insights:
+{coverage_insights}
+
+Pricing Information:
+{pricing_insights}
+
+Regulatory Payer Decisions:
+{regulatory_insights}
+
+Please provide reimbursement strategy recommendations:
+1. Current HTA status (NICE, EMA, ICER if available)
+2. Likely QALY threshold for reimbursement
+3. Pricing ceiling based on market comparisons
+4. Key reimbursement barriers
+5. Reimbursement solutions and access programs
+6. Geographic prioritization for payer targeting
+7. Managed access program recommendations
+
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+Keys required:
+- hta_status (string: e.g., "Recommended", "Not recommended", "Under review")
+- qaly_threshold (float, in pounds/euros per QALY)
+- pricing_ceiling (float, in USD)
+- reimbursement_barriers (list of strings)
+- reimbursement_solutions (list of strings)
+- geography_priority (list of strings: e.g., ["US", "EU", "UK"])
+- managed_access_programs (list of strings)
+- payer_feedback_summary (string)
