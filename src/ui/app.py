@@ -20,6 +20,8 @@ logger = get_logger(__name__)
 # Initialize session state FIRST (before any page code)
 if "workflow_result" not in st.session_state:
     st.session_state.workflow_result = None
+if "last_brief_key" not in st.session_state:
+    st.session_state.last_brief_key = None
 if "workflow_running" not in st.session_state:
     st.session_state.workflow_running = False
 if "drug_name" not in st.session_state:
@@ -588,9 +590,14 @@ def main():
         # Run workflow
         run_workflow(drug_name, indication, selected_hospital, selected_doctor)
     
-    # Display results if available (safe access using .get())
+    # Display results if available and inputs match the stored brief key.
+    # This ensures: (a) a rerun/refresh with the same inputs restores the stored
+    # brief without re-running agents; (b) changing inputs hides the stale result
+    # until the user explicitly clicks Generate.
     workflow_result = st.session_state.get('workflow_result')
-    if workflow_result:
+    stored_key = st.session_state.get('last_brief_key')
+    current_key = (drug_name, indication, selected_hospital, selected_doctor)
+    if workflow_result and stored_key == current_key:
         display_msl_results(
             workflow_result,
             st.session_state.get('current_hospital'),
@@ -624,6 +631,7 @@ def run_workflow(drug_name: str, indication: str, hospital: str, doctor: str):
             
             if result and result.agent_status == "completed":
                 st.session_state.workflow_result = result
+                st.session_state.last_brief_key = (drug_name, indication, hospital, doctor)
                 st.success("✅ Intelligence Brief Ready!")
                 st.balloons()
             else:
