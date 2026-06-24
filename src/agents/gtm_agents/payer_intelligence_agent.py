@@ -4,7 +4,7 @@ Searches for HTA decisions, reimbursement criteria, and payer feedback
 """
 
 from typing import Dict, Any
-from src.schema.gtm_state import GTMState, PayerIntelligenceData
+from src.schema.gtm_state import GTMState, PayerIntelligenceData, unavailable
 from src.service.tools.pubmed_tools import search_hta_pubs
 from src.service.tools.tavily_tools import tavily_search, search_payer_coverage, search_pricing_information
 from src.core.llm import get_claude
@@ -146,12 +146,18 @@ Keys required:
                 else:
                     logger.warning(f"⚠️ Validation errors: {result.errors}")
                     payer_data_dict = get_default_payer_data()
+                    state.sources["payer.pricing_ceiling"] = unavailable("Not available from sources — validation failed")
+                    state.sources["payer.hta_status"] = unavailable("Not available from sources — validation failed")
             except ValueError:
                 logger.warning("⚠️ Could not extract JSON from LLM response")
                 payer_data_dict = get_default_payer_data()
+                state.sources["payer.pricing_ceiling"] = unavailable("Not available from sources — JSON extraction failed")
+                state.sources["payer.hta_status"] = unavailable("Not available from sources — JSON extraction failed")
         except Exception as e:
             logger.error(f"❌ LLM synthesis error: {str(e)}")
             payer_data_dict = get_default_payer_data()
+            state.sources["payer.pricing_ceiling"] = unavailable(f"Not available from sources — LLM error: {str(e)}")
+            state.sources["payer.hta_status"] = unavailable(f"Not available from sources — LLM error: {str(e)}")
         
         # Step 6: Create PayerIntelligenceData object
         payer_intelligence_data = PayerIntelligenceData(
@@ -179,7 +185,8 @@ Keys required:
         state.agent_status = "completed"
         
         logger.info("✅ Payer Intelligence Agent completed successfully")
-        logger.info(f"💰 HTA Status: {payer_intelligence_data.hta_status} | QALY Threshold: £{payer_intelligence_data.qaly_threshold:,.0f}")
+        qaly_str = f"£{payer_intelligence_data.qaly_threshold:,.0f}" if payer_intelligence_data.qaly_threshold is not None else "N/A"
+        logger.info(f"💰 HTA Status: {payer_intelligence_data.hta_status} | QALY Threshold: {qaly_str}")
         
         return state
         
@@ -206,11 +213,16 @@ def format_hta_summary(publications: list) -> str:
 
 
 def get_default_payer_data() -> Dict[str, Any]:
-    """Return default payer data when synthesis fails"""
+    """Return honest empty fallback when payer synthesis fails.
+
+    Fabricated numeric figures (qaly_threshold, pricing_ceiling) are replaced
+    with None so the UI can show "—" rather than an invented value.
+    Generic guidance text is kept; it contains no fabricated numbers.
+    """
     return {
-        "hta_status": "Under review",
-        "qaly_threshold": 30000,
-        "pricing_ceiling": 0,
+        "hta_status": None,
+        "qaly_threshold": None,
+        "pricing_ceiling": None,
         "reimbursement_barriers": ["Insufficient data"],
         "reimbursement_solutions": ["Requires additional HTA submission"],
         "geography_priority": ["US", "EU", "UK"],
