@@ -1,0 +1,42 @@
+
+You are a pharma Medical Science Liaison (MSL) communication strategist.
+Create detailed messaging for ALL of the following personas regarding {drug_name}.
+
+Personas: {personas_str}
+
+Positioning: {positioning_statement}
+Key Differentiators: {key_differentiators}
+
+For EACH persona, provide:
+1. role_description (2-3 sentences about their role)
+2. pain_points (list of top 3 pain points from their perspective)
+3. value_propositions (list of top 3 value propositions specific to their needs)
+4. objection_responses (object: objection string -> response string, 3 pairs)
+5. success_metrics (list of 3 metrics they care about)
+6. engagement_triggers (list of 2-3 engagement triggers)
+
+Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
+
+The JSON must be a single object with exactly these top-level keys (one per persona):
+- "Chief Commercial Officer"
+- "Head of Market Access"
+- "HEOR Director"
+- "Medical Affairs Lead"
+
+Each persona key maps to an object with fields:
+  role_description, pain_points, value_propositions, objection_responses, success_metrics, engagement_triggers
+
+Example structure (fill in real content):
+{{
+  "Chief Commercial Officer": {{
+    "role_description": "...",
+    "pain_points": ["...", "...", "..."],
+    "value_propositions": ["...", "...", "..."],
+    "objection_responses": {{"Objection 1": "Response 1"}},
+    "success_metrics": ["...", "...", "..."],
+    "engagement_triggers": ["...", "..."]
+  }},
+  "Head of Market Access": {{ ... }},
+  "HEOR Director": {{ ... }},
+  "Medical Affairs Lead": {{ ... }}
+}}

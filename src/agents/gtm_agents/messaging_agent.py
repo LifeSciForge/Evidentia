@@ -16,6 +16,7 @@ from src.service.validators.json_validator import (
     extract_json_from_text, validate_with_pydantic,
     PositioningResponse, PersonaResponse, AllPersonasResponse,
 )
+from src.prompts import load_prompt
 
 logger = get_logger(__name__)
 
@@ -39,108 +40,15 @@ async def generate_msl_talking_points(state: GTMState) -> Optional[MSLTalkingPoi
 
     llm = get_claude(temperature=0.3)
 
-    prompt = f"""You are a clinical communication strategist for Medical Science Liaisons (MSLs).
-Generate a clinically-grounded, MSL-conversational talking points guide.
-
-KOL: {state.current_doctor}
-Institution: {state.current_hospital or "Not specified"}
-Drug: {state.drug_name}
-Indication: {state.indication}
-
-Clinical Data Available:
-Trials: {trials}
-Key Publications: {publications}
-
-CRITICAL CONSTRAINTS:
-1. Conversational — sounds like two doctors talking, NOT a pitch
-2. Data-backed — every claim cites a trial or clinical observation; if data is unavailable, say so honestly
-3. Actionable — MSL can say it naturally in under 60 seconds
-4. KOL-relevant — addresses this specific doctor's likely patient population
-5. Non-promotional — no "first-in-class", "breakthrough", "game-changing", "next evolution"
-
-Return ONLY valid JSON:
-{{
-  "doctor_profile": {{
-    "name": "{state.current_doctor}",
-    "institution": "{state.current_hospital or 'Not specified'}",
-    "patient_population": "Inferred from indication: {state.indication}",
-    "clinical_philosophy": "Evidence-driven"
-  }},
-  "conversation_opener": {{
-    "text": "2-3 sentence clinical hook. Mentions patient population, clinical reason for engagement, opens dialogue. NO marketing language.",
-    "why_this_works": "Why this doctor will engage based on their practice",
-    "delivery_tips": "Tone and pacing guidance for the MSL"
-  }},
-  "three_clinical_pillars": [
-    {{
-      "pillar_title": "2-4 word clinical fact",
-      "evidence": {{
-        "trial_name": "Trial name or NCT ID if available, else empty string",
-        "key_data_point": "Response rate, safety metric, or clinical observation",
-        "source": "Trial or publication reference"
-      }},
-      "msl_talking_point": "How MSL naturally says this to a doctor — peer-to-peer tone, not a pitch",
-      "why_relevant_to_kol": "Why this matters for their specific patient population"
-    }},
-    {{
-      "pillar_title": "Pillar 2 title",
-      "evidence": {{"trial_name": "", "key_data_point": "", "source": ""}},
-      "msl_talking_point": "",
-      "why_relevant_to_kol": ""
-    }},
-    {{
-      "pillar_title": "Pillar 3 title",
-      "evidence": {{"trial_name": "", "key_data_point": "", "source": ""}},
-      "msl_talking_point": "",
-      "why_relevant_to_kol": ""
-    }}
-  ],
-  "key_differentiators": [
-    {{
-      "vs_standard_of_care": "What this doctor is likely doing currently",
-      "advantage": "How {state.drug_name} differs. Do NOT claim superiority without head-to-head data.",
-      "evidence": "Data supporting this framing",
-      "msl_talking_point": "Natural peer-to-peer way to say this"
-    }}
-  ],
-  "anticipated_objections": [
-    {{
-      "objection": "Specific clinical concern this KOL would raise",
-      "why_they_ask": "Root cause based on their patient population and practice",
-      "probability": "XX%",
-      "evidence_response": "Trial data or mechanism rationale that addresses it",
-      "msl_response": "How to respond — acknowledge concern, cite data, not defensive"
-    }},
-    {{
-      "objection": "Second likely objection",
-      "why_they_ask": "",
-      "probability": "XX%",
-      "evidence_response": "",
-      "msl_response": ""
-    }},
-    {{
-      "objection": "Third likely objection",
-      "why_they_ask": "",
-      "probability": "XX%",
-      "evidence_response": "",
-      "msl_response": ""
-    }}
-  ],
-  "guardrails": {{
-    "avoid_claims": [
-      {{
-        "claim": "Specific phrase MSL must NOT use",
-        "reason": "Why — unsupported, marketing language, defensive, etc.",
-        "alternative": "Better way to frame it"
-      }}
-    ]
-  }},
-  "delivery_notes": {{
-    "tone": "Peer-to-peer clinical discussion, not pitch",
-    "pace": "Deliverable in 2-3 minutes naturally",
-    "key_to_success": "What will make this specific doctor engage"
-  }}
-}}"""
+    hospital_or_default = state.current_hospital or "Not specified"
+    prompt = load_prompt("messaging_talking_points").format(
+        current_doctor=state.current_doctor,
+        hospital_or_default=hospital_or_default,
+        drug_name=state.drug_name,
+        indication=state.indication,
+        trials=trials,
+        publications=publications,
+    )
 
     try:
         response = await asyncio.to_thread(invoke_with_retry, llm, prompt)
@@ -242,76 +150,14 @@ async def messaging_agent(state: GTMState) -> GTMState:
         logger.info("🧠 Creating positioning framework with Claude...")
         llm = get_claude()
         
-        positioning_prompt = f"""
-You are a pharma Medical Science Liaison (MSL) communication strategist.
-Your job is to help MSLs make the affirmative case for {state.drug_name} — not to criticise competitors.
-
-RULE: Never lead with a competitor's weakness. Always lead with {state.drug_name}'s strengths.
-RULE: When a competitor is well-established, acknowledge it, then pivot to what {state.drug_name} uniquely offers.
-RULE: Competitive statements must end on {state.drug_name}'s benefit, not on a competitor's problem.
-
-Drug: {state.drug_name}
-Indication: {state.indication}
-
-Market Context:
-{market_summary}
-
-Competitive Landscape (for context only — do NOT criticise these drugs):
-{competitor_summary}
-
-ICP Context:
-{icp_summary}
-
-Payer Context:
-{payer_summary}
-
-Create a positioning framework with:
-
-1. Category Definition:
-   - What unmet clinical need does {state.drug_name} address?
-   - What patient population benefits most?
-
-2. Positioning Statement (one sentence):
-   - What {state.drug_name} uniquely does for patients
-   - Must be affirmative — what we offer, not what others lack
-
-3. Key Differentiators — affirmative framing only:
-   - Mechanism of action advantage (what it uniquely targets or how)
-   - Efficacy in specific patient sub-populations where {state.drug_name} has an edge
-   - Safety or tolerability profile that benefits patients
-   Each differentiator must be a complete sentence starting with "{state.drug_name}..."
-
-4. Value Propositions by Persona:
-   - For CCO: revenue and market access opportunity
-   - For Market Access: payer value story
-   - For HEOR: health economics evidence
-   - For Medical Affairs: clinical evidence quality
-
-5. Competitive Bridge Statements (one per major competitor):
-   Format: "Yes, [competitor] is [acknowledged strength]. And {state.drug_name} [unique strength that adds value for [specific patient population]."
-   - Acknowledge the competitor's legitimacy first
-   - Pivot to {state.drug_name}'s complementary or additive advantage
-   - End on the patient benefit, not on the competitor's limitation
-
-6. Messaging Pillars (3 core clinical themes):
-   - Each pillar: a short clinical fact about {state.drug_name}, evidence-backed if possible
-
-7. Common Objection Responses:
-   - Format: objection -> response that acknowledges the concern then pivots affirmatively
-   - Include: "Why use {state.drug_name} when [established competitor] is proven?"
-   - Response must start with acknowledgment ("That's a fair point..."), then pivot
-
-Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
-
-Keys required:
-- category_definition (string)
-- positioning_statement (string)
-- key_differentiators (list of strings, each starting with "{state.drug_name}")
-- value_propositions (object with persona names as keys)
-- competitive_vs_statements (list of strings, each in "Yes... And {state.drug_name}..." format)
-- messaging_pillars (list of strings)
-- common_objections (object: objection string -> response string that pivots affirmatively)
-"""
+        positioning_prompt = load_prompt("messaging_positioning").format(
+            drug_name=state.drug_name,
+            indication=state.indication,
+            market_summary=market_summary,
+            competitor_summary=competitor_summary,
+            icp_summary=icp_summary,
+            payer_summary=payer_summary,
+        )
         
         try:
             response = await asyncio.to_thread(invoke_with_retry, llm, positioning_prompt)
@@ -337,49 +183,15 @@ Keys required:
 
         personas = ["Chief Commercial Officer", "Head of Market Access", "HEOR Director", "Medical Affairs Lead"]
 
-        all_personas_prompt = f"""
-You are a pharma Medical Science Liaison (MSL) communication strategist.
-Create detailed messaging for ALL of the following personas regarding {state.drug_name}.
-
-Personas: {', '.join(personas)}
-
-Positioning: {positioning_dict.get('positioning_statement', '')}
-Key Differentiators: {positioning_dict.get('key_differentiators', [])}
-
-For EACH persona, provide:
-1. role_description (2-3 sentences about their role)
-2. pain_points (list of top 3 pain points from their perspective)
-3. value_propositions (list of top 3 value propositions specific to their needs)
-4. objection_responses (object: objection string -> response string, 3 pairs)
-5. success_metrics (list of 3 metrics they care about)
-6. engagement_triggers (list of 2-3 engagement triggers)
-
-Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
-
-The JSON must be a single object with exactly these top-level keys (one per persona):
-- "Chief Commercial Officer"
-- "Head of Market Access"
-- "HEOR Director"
-- "Medical Affairs Lead"
-
-Each persona key maps to an object with fields:
-  role_description, pain_points, value_propositions, objection_responses, success_metrics, engagement_triggers
-
-Example structure (fill in real content):
-{{
-  "Chief Commercial Officer": {{
-    "role_description": "...",
-    "pain_points": ["...", "...", "..."],
-    "value_propositions": ["...", "...", "..."],
-    "objection_responses": {{"Objection 1": "Response 1"}},
-    "success_metrics": ["...", "...", "..."],
-    "engagement_triggers": ["...", "..."]
-  }},
-  "Head of Market Access": {{ ... }},
-  "HEOR Director": {{ ... }},
-  "Medical Affairs Lead": {{ ... }}
-}}
-"""
+        personas_str = ', '.join(personas)
+        positioning_statement = positioning_dict.get('positioning_statement', '')
+        key_differentiators = positioning_dict.get('key_differentiators', [])
+        all_personas_prompt = load_prompt("messaging_personas").format(
+            drug_name=state.drug_name,
+            personas_str=personas_str,
+            positioning_statement=positioning_statement,
+            key_differentiators=key_differentiators,
+        )
 
         persona_messaging = {}
         try:

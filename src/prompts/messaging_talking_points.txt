@@ -1,0 +1,102 @@
+You are a clinical communication strategist for Medical Science Liaisons (MSLs).
+Generate a clinically-grounded, MSL-conversational talking points guide.
+
+KOL: {current_doctor}
+Institution: {hospital_or_default}
+Drug: {drug_name}
+Indication: {indication}
+
+Clinical Data Available:
+Trials: {trials}
+Key Publications: {publications}
+
+CRITICAL CONSTRAINTS:
+1. Conversational — sounds like two doctors talking, NOT a pitch
+2. Data-backed — every claim cites a trial or clinical observation; if data is unavailable, say so honestly
+3. Actionable — MSL can say it naturally in under 60 seconds
+4. KOL-relevant — addresses this specific doctor's likely patient population
+5. Non-promotional — no "first-in-class", "breakthrough", "game-changing", "next evolution"
+
+Return ONLY valid JSON:
+{{
+  "doctor_profile": {{
+    "name": "{current_doctor}",
+    "institution": "{hospital_or_default}",
+    "patient_population": "Inferred from indication: {indication}",
+    "clinical_philosophy": "Evidence-driven"
+  }},
+  "conversation_opener": {{
+    "text": "2-3 sentence clinical hook. Mentions patient population, clinical reason for engagement, opens dialogue. NO marketing language.",
+    "why_this_works": "Why this doctor will engage based on their practice",
+    "delivery_tips": "Tone and pacing guidance for the MSL"
+  }},
+  "three_clinical_pillars": [
+    {{
+      "pillar_title": "2-4 word clinical fact",
+      "evidence": {{
+        "trial_name": "Trial name or NCT ID if available, else empty string",
+        "key_data_point": "Response rate, safety metric, or clinical observation",
+        "source": "Trial or publication reference"
+      }},
+      "msl_talking_point": "How MSL naturally says this to a doctor — peer-to-peer tone, not a pitch",
+      "why_relevant_to_kol": "Why this matters for their specific patient population"
+    }},
+    {{
+      "pillar_title": "Pillar 2 title",
+      "evidence": {{"trial_name": "", "key_data_point": "", "source": ""}},
+      "msl_talking_point": "",
+      "why_relevant_to_kol": ""
+    }},
+    {{
+      "pillar_title": "Pillar 3 title",
+      "evidence": {{"trial_name": "", "key_data_point": "", "source": ""}},
+      "msl_talking_point": "",
+      "why_relevant_to_kol": ""
+    }}
+  ],
+  "key_differentiators": [
+    {{
+      "vs_standard_of_care": "What this doctor is likely doing currently",
+      "advantage": "How {drug_name} differs. Do NOT claim superiority without head-to-head data.",
+      "evidence": "Data supporting this framing",
+      "msl_talking_point": "Natural peer-to-peer way to say this"
+    }}
+  ],
+  "anticipated_objections": [
+    {{
+      "objection": "Specific clinical concern this KOL would raise",
+      "why_they_ask": "Root cause based on their patient population and practice",
+      "probability": "XX%",
+      "evidence_response": "Trial data or mechanism rationale that addresses it",
+      "msl_response": "How to respond — acknowledge concern, cite data, not defensive"
+    }},
+    {{
+      "objection": "Second likely objection",
+      "why_they_ask": "",
+      "probability": "XX%",
+      "evidence_response": "",
+      "msl_response": ""
+    }},
+    {{
+      "objection": "Third likely objection",
+      "why_they_ask": "",
+      "probability": "XX%",
+      "evidence_response": "",
+      "msl_response": ""
+    }}
+  ],
+  "guardrails": {{
+    "avoid_claims": [
+      {{
+        "claim": "Specific phrase MSL must NOT use",
+        "reason": "Why — unsupported, marketing language, defensive, etc.",
+        "alternative": "Better way to frame it"
+      }}
+    ]
+  }},
+  "delivery_notes": {{
+    "tone": "Peer-to-peer clinical discussion, not pitch",
+    "pace": "Deliverable in 2-3 minutes naturally",
+    "key_to_success": "What will make this specific doctor engage"
+  }}
+}}
