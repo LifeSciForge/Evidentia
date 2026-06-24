@@ -5,12 +5,14 @@ Handles environment variables, API keys, and configuration
 
 import os
 from typing import Optional
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
+
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="allow")
 
     # ========================================================================
     # LLM Configuration
@@ -82,12 +84,6 @@ class Settings(BaseSettings):
     # ========================================================================
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
-
-    class Config:
-        """Pydantic config"""
-        env_file = ".env"
-        case_sensitive = True
-        extra = "allow"  # Allow extra fields
 
 
 @lru_cache()
