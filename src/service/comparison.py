@@ -3,9 +3,15 @@ src/service/comparison.py
 
 Highest-phase trial comparison service.
 
-Given a drug name, returns a comparison row whose dimensions are sourced
-exclusively from that drug's highest-phase clinical trial as registered on
-ClinicalTrials.gov (no fabricated values).
+Given a drug name, returns a comparison row whose dimensions are sourced from:
+  1. The drug's highest-phase clinical trial as registered on ClinicalTrials.gov
+     (registry-backed fields: phase, primary_endpoint, approval_status, nct_id, nct_url).
+  2. The drug's top PubMed publication abstracts
+     (publication-backed fields: efficacy as actual results, mechanism, key_safety, dosing).
+
+The LLM extraction prompt explicitly requires efficacy to be an actual reported
+result (e.g., "median PFS 11.1 mo, HR 0.51"), NOT the endpoint name — returning
+"" if no numeric/qualitative result is stated in the retrieved text.
 
 Registry-backed dimensions (always traced to NCT id):
     nct_id            — NCT identifier of the selected trial
@@ -14,27 +20,34 @@ Registry-backed dimensions (always traced to NCT id):
     primary_endpoint  — first primary outcome measure (from registry)
     approval_status   — short human-readable label derived from overall status + phase
 
-LLM-extracted dimensions (over the trial's own text; empty string if absent):
-    mechanism         — MOA stated in the trial text
-    efficacy          — key efficacy result / endpoint metric mentioned
-    key_safety        — notable safety finding mentioned
-    dosing            — dosing schedule mentioned
+LLM-extracted dimensions (over trial text + publication abstract(s); "" if absent):
+    mechanism         — MOA as stated in the retrieved text
+    efficacy          — actual reported result (median PFS/OS, HR, ORR etc.)
+    key_safety        — notable AEs / safety signal stated in the text
+    dosing            — dose/schedule if stated
+
+Publication traceability:
+    pmid              — PMID of the first used publication (or "")
+    pmid_url          — canonical PubMed URL for the publication (or "")
+    sources           — list of {pmid, pmid_url, title} for all used publications
 
 No-fabrication contract:
-    - LLM is instructed to return "" for any dimension not stated in the trial text.
+    - LLM is instructed to return "" for any dimension not stated in the retrieved text.
+    - efficacy MUST be a real result — NOT the endpoint name.
     - On any LLM failure the LLM dims are "" (registry dims are preserved).
-    - On no trials available all dims are "" and NCT fields are "".
+    - On any PubMed failure, continues with trial-only text (graceful).
+    - On no trials available all dims are "" and NCT/PMID fields are "".
     - Never raises; always returns a well-formed row dict.
 """
 
 from __future__ import annotations
 
 from typing import Optional
-import re
 
 from src.core.logger import get_logger
 from src.core.llm import get_claude
 from src.service.tools.clinical_trials_tools import ClinicalTrialsClient, nct_url
+from src.service.tools.pubmed_tools import search_pubmed
 from src.service.validators.json_validator import extract_json_from_text
 
 logger = get_logger(__name__)
@@ -99,6 +112,9 @@ def _empty_row(drug_name: str) -> dict:
         "nct_id": "",
         "nct_url": "",
         "phase": "",
+        "pmid": "",
+        "pmid_url": "",
+        "sources": [],
         "dimensions": {
             "mechanism": "",
             "efficacy": "",
@@ -110,26 +126,94 @@ def _empty_row(drug_name: str) -> dict:
     }
 
 
-def _llm_extract_dims(trial: dict, trial_detail_text: str) -> dict:
-    """Call the LLM once over trial text; return dict with mechanism/efficacy/key_safety/dosing.
+def _fetch_pubmed_abstracts(drug_name: str, max_results: int = 3) -> tuple[str, list]:
+    """Fetch top PubMed publications for drug_name and return (combined_abstract_text, sources).
+
+    Returns ("", []) on any failure (graceful — never raises).
+
+    sources is a list of dicts: [{pmid, pmid_url, title}, ...]
+    """
+    try:
+        result = search_pubmed(drug_name=drug_name, max_results=max_results)
+        if not result.get("success"):
+            logger.warning(f"PubMed search failed for {drug_name}: {result.get('error')}")
+            return "", []
+
+        pubs = result.get("publications", [])
+        if not pubs:
+            return "", []
+
+        # Build combined text from all retrieved abstracts (up to max_results)
+        text_blocks = []
+        sources = []
+        for pub in pubs[:max_results]:
+            pmid = str(pub.get("pmid", ""))
+            title = str(pub.get("title", ""))
+            abstract = str(pub.get("abstract", ""))
+            pub_url = str(pub.get("url", ""))
+
+            if not pub_url and pmid:
+                from src.service.tools.pubmed_tools import pmid_url as _pmid_url
+                pub_url = _pmid_url(pmid)
+
+            if title or abstract:
+                block_parts = []
+                if title:
+                    block_parts.append(f"Publication title: {title}")
+                if abstract:
+                    block_parts.append(f"Abstract: {abstract}")
+                text_blocks.append("\n".join(block_parts))
+
+            if pmid:
+                sources.append({"pmid": pmid, "pmid_url": pub_url, "title": title})
+
+        combined = "\n\n".join(text_blocks)
+        return combined, sources
+
+    except Exception as exc:
+        logger.warning(f"PubMed fetch failed for {drug_name}: {exc}")
+        return "", []
+
+
+def _llm_extract_dims(trial: dict, combined_text: str) -> dict:
+    """Call the LLM once over trial + publication text; return mechanism/efficacy/key_safety/dosing.
+
+    Key contract enforced by prompt:
+    - efficacy = actual reported RESULT (e.g. "median OS 17.2 mo, HR 0.78"), NOT the endpoint name.
+    - Return "" for any dimension not explicitly stated in the provided text.
+    - Never invent or infer beyond what the text states.
 
     Returns empty-string dict on any failure (no fabrication).
     """
     empty = {"mechanism": "", "efficacy": "", "key_safety": "", "dosing": ""}
 
-    prompt = f"""You are a medical information extraction assistant.
+    prompt = f"""You are a medical information extraction assistant with strict no-fabrication rules.
 
-Below is the available text from a clinical trial registry entry (ClinicalTrials.gov).
+Below is text from a clinical trial registry entry and/or published clinical trial abstracts.
 Extract ONLY the following four dimensions using ONLY facts explicitly stated in the text below.
-If a dimension is NOT mentioned in the text, return an empty string "" for it — do NOT invent or infer.
+If a dimension is NOT mentioned in the text, return an empty string "" — do NOT invent, infer, or guess.
 
-Dimensions to extract:
-- mechanism: The drug's mechanism of action (MOA) as described in the trial text.
-- efficacy: A key efficacy result or primary endpoint metric mentioned (e.g., ORR %, OS, PFS).
-- key_safety: The most notable safety finding or AE mentioned.
-- dosing: The dosing schedule (dose + frequency) as described.
+DIMENSIONS TO EXTRACT:
+- mechanism: The drug's mechanism of action (MOA) as literally described in the text
+  (e.g. "PD-1/VEGF bispecific antibody", "KRAS G12C covalent inhibitor").
+  Return "" if not stated.
 
-Respond with ONLY valid JSON, no explanation:
+- efficacy: The actual REPORTED RESULT — a real numeric or qualitative clinical outcome
+  as stated in the text (e.g., "median PFS 11.1 months, HR 0.51", "ORR 37.1%",
+  "median OS 17.2 mo vs 12.4 mo, HR 0.78").
+  IMPORTANT: Do NOT return the endpoint NAME (e.g. do NOT return "Overall Survival (OS)"
+  or "Progression-Free Survival"). Only return a result with numbers/data.
+  Return "" if no actual result/data is stated in the text.
+
+- key_safety: The most notable adverse event or safety signal explicitly stated
+  (e.g., "hepatotoxicity grade 3+: 2.7%", "diarrhea grade 3-4: 3%").
+  Return "" if not stated.
+
+- dosing: The dosing schedule (dose + frequency) as explicitly stated in the text
+  (e.g., "960 mg orally once daily", "200 mg IV Q3W").
+  Return "" if not stated.
+
+Respond with ONLY valid JSON, no explanation, no markdown:
 {{
   "mechanism": "...",
   "efficacy": "...",
@@ -137,9 +221,9 @@ Respond with ONLY valid JSON, no explanation:
   "dosing": "..."
 }}
 
-Trial text:
+Retrieved text (trial registry + publication abstracts):
 ---
-{trial_detail_text}
+{combined_text}
 ---"""
 
     try:
@@ -170,6 +254,12 @@ def build_comparison_row(
         "nct_id": "<NCT...>" or "",
         "nct_url": "<canonical url>" or "",
         "phase": "<PHASE3>" or "",
+        "pmid": "<PMID>" or "",          # first used publication
+        "pmid_url": "<url>" or "",        # PubMed canonical URL
+        "sources": [                       # all used publications
+            {"pmid": "...", "pmid_url": "...", "title": "..."},
+            ...
+        ],
         "dimensions": {
             "mechanism": str, "efficacy": str, "key_safety": str,
             "primary_endpoint": str, "dosing": str, "approval_status": str,
@@ -178,8 +268,10 @@ def build_comparison_row(
 
     Provenance:
     - nct_id, nct_url, phase, primary_endpoint, approval_status — from trial registry.
-    - mechanism, efficacy, key_safety, dosing — LLM-extracted from trial text;
-      "" if not mentioned or on LLM failure.
+    - mechanism, efficacy, key_safety, dosing — LLM-extracted from trial text
+      PLUS top PubMed publication abstracts; "" if not stated or on LLM failure.
+    - efficacy is always a real reported result, never just an endpoint name.
+    - pmid / pmid_url / sources — from PubMed; "" / [] if no publications found.
 
     Args:
         drug_name: Name of the drug to profile.
@@ -240,8 +332,7 @@ def build_comparison_row(
     trial_url = best.get("url") or (nct_url(nct_id) if nct_id else "")
     approval_status = _derive_approval_status(phase, status)
 
-    # ---------- Assemble trial text for LLM ----------
-    # Use whatever text is available from the parsed record
+    # ---------- Assemble trial text ----------
     text_parts = []
     if best.get("title") and best["title"] != "N/A":
         text_parts.append(f"Title: {best['title']}")
@@ -272,8 +363,21 @@ def build_comparison_row(
 
     trial_text = "\n".join(text_parts) if text_parts else f"Drug: {drug_name}"
 
+    # ---------- Fetch PubMed abstracts (graceful on failure) ----------
+    pub_text, pub_sources = _fetch_pubmed_abstracts(drug_name, max_results=3)
+
+    # ---------- Combine trial + publication text for LLM ----------
+    combined_parts = [trial_text]
+    if pub_text:
+        combined_parts.append(pub_text)
+    combined_text = "\n\n".join(combined_parts)
+
     # ---------- LLM extraction (graceful on failure) ----------
-    llm_dims = _llm_extract_dims(best, trial_text)
+    llm_dims = _llm_extract_dims(best, combined_text)
+
+    # ---------- Publication traceability ----------
+    first_pmid = pub_sources[0]["pmid"] if pub_sources else ""
+    first_pmid_url = pub_sources[0]["pmid_url"] if pub_sources else ""
 
     # ---------- Assemble row ----------
     row = {
@@ -281,6 +385,9 @@ def build_comparison_row(
         "nct_id": nct_id,
         "nct_url": trial_url,
         "phase": phase,
+        "pmid": first_pmid,
+        "pmid_url": first_pmid_url,
+        "sources": pub_sources,
         "dimensions": {
             "mechanism": llm_dims["mechanism"],
             "efficacy": llm_dims["efficacy"],

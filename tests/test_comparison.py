@@ -11,6 +11,7 @@ Design:
     3. build_comparison_row on LLM failure (no-fabrication / graceful)
     4. build_comparison_row with no trials
     5. cache hit avoids repeated LLM/fetch
+    6. publication-sourced efficacy/mechanism/safety (new)
 """
 
 import os
@@ -115,8 +116,11 @@ class TestHighestPhaseTrial:
 # 2. build_comparison_row: happy path with retrieved_trials
 # ---------------------------------------------------------------------------
 
+_PUBMED_EMPTY_RESULT = {"success": True, "total_results": 0, "publications": []}
+
+
 class TestBuildRowHappyPath:
-    """Pass retrieved_trials; mock LLM; assert registry dims + LLM dims."""
+    """Pass retrieved_trials; mock LLM + PubMed; assert registry dims + LLM dims."""
 
     def test_registry_fields_populated(self):
         trials = [_trial("NCT12345678", "PHASE3",
@@ -125,7 +129,8 @@ class TestBuildRowHappyPath:
         mock_llm = MagicMock()
         mock_llm.invoke.return_value.content = _MOCK_LLM_JSON
 
-        with patch("src.service.comparison.get_claude", return_value=mock_llm):
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch("src.service.comparison.search_pubmed", return_value=_PUBMED_EMPTY_RESULT):
             row = build_comparison_row("sotorasib", retrieved_trials=trials)
 
         assert row["drug"] == "sotorasib"
@@ -140,7 +145,8 @@ class TestBuildRowHappyPath:
         mock_llm = MagicMock()
         mock_llm.invoke.return_value.content = _MOCK_LLM_JSON
 
-        with patch("src.service.comparison.get_claude", return_value=mock_llm):
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch("src.service.comparison.search_pubmed", return_value=_PUBMED_EMPTY_RESULT):
             row = build_comparison_row("sotorasib", retrieved_trials=trials)
 
         assert row["dimensions"]["primary_endpoint"] == "Progression-Free Survival"
@@ -151,7 +157,8 @@ class TestBuildRowHappyPath:
         mock_llm = MagicMock()
         mock_llm.invoke.return_value.content = _MOCK_LLM_JSON
 
-        with patch("src.service.comparison.get_claude", return_value=mock_llm):
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch("src.service.comparison.search_pubmed", return_value=_PUBMED_EMPTY_RESULT):
             row = build_comparison_row("sotorasib", retrieved_trials=trials)
 
         # approval_status is registry-derived: should mention COMPLETED / phase
@@ -165,7 +172,8 @@ class TestBuildRowHappyPath:
         mock_llm = MagicMock()
         mock_llm.invoke.return_value.content = _MOCK_LLM_JSON
 
-        with patch("src.service.comparison.get_claude", return_value=mock_llm):
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch("src.service.comparison.search_pubmed", return_value=_PUBMED_EMPTY_RESULT):
             row = build_comparison_row("sotorasib", retrieved_trials=trials)
 
         dims = row["dimensions"]
@@ -183,7 +191,8 @@ class TestBuildRowHappyPath:
         mock_llm = MagicMock()
         mock_llm.invoke.return_value.content = _MOCK_LLM_JSON
 
-        with patch("src.service.comparison.get_claude", return_value=mock_llm):
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch("src.service.comparison.search_pubmed", return_value=_PUBMED_EMPTY_RESULT):
             row = build_comparison_row("testdrug", retrieved_trials=trials)
 
         assert row["nct_id"] == "NCT00000003"
@@ -202,7 +211,8 @@ class TestBuildRowLLMFailure:
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = RuntimeError("LLM exploded")
 
-        with patch("src.service.comparison.get_claude", return_value=mock_llm):
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch("src.service.comparison.search_pubmed", return_value=_PUBMED_EMPTY_RESULT):
             row = build_comparison_row("testdrug", retrieved_trials=trials)
         return row
 
@@ -291,7 +301,8 @@ class TestCacheHit:
         mock_llm.invoke.return_value.content = _MOCK_LLM_JSON
         cache = CacheManager()
 
-        with patch("src.service.comparison.get_claude", return_value=mock_llm):
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch("src.service.comparison.search_pubmed", return_value=_PUBMED_EMPTY_RESULT):
             row1 = build_comparison_row("sotorasib", retrieved_trials=trials, cache=cache)
             row2 = build_comparison_row("sotorasib", retrieved_trials=trials, cache=cache)
 
@@ -310,10 +321,195 @@ class TestCacheHit:
         mock_llm.invoke.return_value.content = _MOCK_LLM_JSON
         cache = CacheManager()
 
-        with patch("src.service.comparison.get_claude", return_value=mock_llm):
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch("src.service.comparison.search_pubmed", return_value=_PUBMED_EMPTY_RESULT):
             build_comparison_row("sotorasib", retrieved_trials=trials_a, cache=cache)
             build_comparison_row("adagrasib", retrieved_trials=trials_b, cache=cache)
 
         assert mock_llm.invoke.call_count == 2, (
             f"Expected LLM invoke twice (different drugs), got {mock_llm.invoke.call_count}"
         )
+
+
+# ---------------------------------------------------------------------------
+# 6. Publication-sourced efficacy/mechanism/safety
+# ---------------------------------------------------------------------------
+
+# A fake PubMed result that looks like what PubMedClient.search_publications returns
+_FAKE_PUBMED_RESULT = {
+    "success": True,
+    "total_results": 1,
+    "returned_results": 1,
+    "publications": [
+        {
+            "pmid": "12345678",
+            "title": "Phase 3 trial of testdrug in NSCLC",
+            "authors": ["Smith", "Jones"],
+            "journal": "New England Journal of Medicine",
+            "publication_year": "2023",
+            "abstract": (
+                "In this phase 3 trial, testdrug demonstrated median OS 17.2 months (HR 0.78, "
+                "p=0.003) versus 12.4 months for chemotherapy. The mechanism involves selective "
+                "KRAS G12C covalent inhibition. Dosing was 960 mg QD orally. Common adverse "
+                "events included diarrhea (grade 3-4: 3%) and hepatotoxicity (grade 3-4: 2%)."
+            ),
+            "mesh_terms": [],
+            "url": "https://pubmed.ncbi.nlm.nih.gov/12345678/",
+        }
+    ],
+    "query": '"testdrug"[Title/Abstract]',
+}
+
+_FAKE_PUBMED_EMPTY = {
+    "success": True,
+    "total_results": 0,
+    "returned_results": 0,
+    "publications": [],
+    "query": '"testdrug"[Title/Abstract]',
+}
+
+
+class TestPublicationSourcedDims:
+    """Publication abstracts supply efficacy results, mechanism, and safety.
+    All PubMed calls are mocked — no live network traffic.
+    """
+
+    def _run_with_pub(self, mock_llm_json: str, pubmed_result=None):
+        """Helper: run build_comparison_row with one trial + a mocked PubMed result."""
+        if pubmed_result is None:
+            pubmed_result = _FAKE_PUBMED_RESULT
+        trials = [
+            _trial(
+                "NCT99001122",
+                "PHASE3",
+                status="COMPLETED",
+                primary_endpoint="Overall Survival (OS)",
+            )
+        ]
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value.content = mock_llm_json
+
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch(
+                 "src.service.comparison.search_pubmed",
+                 return_value=pubmed_result,
+             ):
+            row = build_comparison_row("testdrug", retrieved_trials=trials)
+        return row
+
+    def test_efficacy_is_result_not_endpoint(self):
+        """efficacy must be the numeric result from the abstract, not the endpoint name."""
+        llm_json = """{
+          "mechanism": "KRAS G12C covalent inhibitor",
+          "efficacy": "median OS 17.2 mo, HR 0.78",
+          "key_safety": "diarrhea grade 3-4: 3%, hepatotoxicity grade 3-4: 2%",
+          "dosing": "960 mg QD"
+        }"""
+        row = self._run_with_pub(llm_json)
+        dims = row["dimensions"]
+        # Efficacy must be the result, not the endpoint label
+        assert dims["efficacy"] == "median OS 17.2 mo, HR 0.78"
+        # Must NOT equal the primary_endpoint string
+        assert dims["efficacy"] != dims["primary_endpoint"]
+        assert dims["primary_endpoint"] == "Overall Survival (OS)"
+
+    def test_dims_filled_from_publication(self):
+        """mechanism and key_safety should be populated when present in the publication."""
+        llm_json = """{
+          "mechanism": "selective KRAS G12C covalent inhibitor",
+          "efficacy": "median OS 17.2 mo, HR 0.78",
+          "key_safety": "hepatotoxicity grade 3-4: 2%",
+          "dosing": "960 mg QD"
+        }"""
+        row = self._run_with_pub(llm_json)
+        dims = row["dimensions"]
+        assert dims["mechanism"] != "", "mechanism should be filled from publication"
+        assert dims["key_safety"] != "", "key_safety should be filled from publication"
+
+    def test_no_publication_efficacy_empty(self):
+        """When no publication abstract is available, LLM returns "" for efficacy.
+        The row must carry "" — NOT the primary_endpoint string.
+        """
+        llm_json = """{
+          "mechanism": "",
+          "efficacy": "",
+          "key_safety": "",
+          "dosing": ""
+        }"""
+        row = self._run_with_pub(llm_json, pubmed_result=_FAKE_PUBMED_EMPTY)
+        dims = row["dimensions"]
+        assert dims["efficacy"] == "", (
+            f"efficacy should be '' when no result in text, got {dims['efficacy']!r}"
+        )
+        # Must NOT have silently fallen back to the endpoint name
+        assert dims["efficacy"] != dims["primary_endpoint"]
+
+    def test_publication_source_returned(self):
+        """Row must carry pmid + pmid_url (or a 'sources' list) when a publication was found."""
+        llm_json = """{
+          "mechanism": "KRAS G12C covalent inhibitor",
+          "efficacy": "median OS 17.2 mo, HR 0.78",
+          "key_safety": "diarrhea 3%",
+          "dosing": "960 mg QD"
+        }"""
+        row = self._run_with_pub(llm_json)
+        # The row must expose publication provenance in some form
+        has_pmid = row.get("pmid") or (
+            any(s.get("pmid") for s in row.get("sources", []))
+        )
+        has_pmid_url = row.get("pmid_url") or (
+            any(s.get("pmid_url") for s in row.get("sources", []))
+        )
+        assert has_pmid, f"Row should carry pmid; row keys: {list(row.keys())}"
+        assert has_pmid_url, f"Row should carry pmid_url; row keys: {list(row.keys())}"
+
+    def test_pubmed_fetch_is_called_with_drug_name(self):
+        """build_comparison_row must call search_pubmed with the drug name."""
+        llm_json = """{
+          "mechanism": "",
+          "efficacy": "",
+          "key_safety": "",
+          "dosing": ""
+        }"""
+        trials = [_trial("NCT00001111", "PHASE3")]
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value.content = llm_json
+
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch(
+                 "src.service.comparison.search_pubmed",
+                 return_value=_FAKE_PUBMED_EMPTY,
+             ) as mock_pubmed:
+            build_comparison_row("sotorasib", retrieved_trials=trials)
+
+        mock_pubmed.assert_called_once()
+        call_args = mock_pubmed.call_args
+        # drug_name may be positional or keyword — check both
+        positional_match = bool(call_args.args) and call_args.args[0] == "sotorasib"
+        keyword_match = call_args.kwargs.get("drug_name") == "sotorasib"
+        assert positional_match or keyword_match, (
+            f"search_pubmed not called with drug_name='sotorasib'; call_args={call_args}"
+        )
+
+    def test_pubmed_failure_graceful(self):
+        """If PubMed search raises, build_comparison_row must not raise; LLM dims default to ""."""
+        trials = [_trial("NCT00001111", "PHASE3", primary_endpoint="PFS")]
+        mock_llm = MagicMock()
+        # LLM returns empty dims (simulating no text to extract from)
+        mock_llm.invoke.return_value.content = (
+            '{"mechanism": "", "efficacy": "", "key_safety": "", "dosing": ""}'
+        )
+
+        with patch("src.service.comparison.get_claude", return_value=mock_llm), \
+             patch(
+                 "src.service.comparison.search_pubmed",
+                 side_effect=RuntimeError("PubMed is down"),
+             ):
+            try:
+                row = build_comparison_row("sotorasib", retrieved_trials=trials)
+            except Exception as exc:
+                pytest.fail(f"build_comparison_row raised on PubMed failure: {exc}")
+
+        # Registry dims must still be present
+        assert row["nct_id"] == "NCT00001111"
+        assert row["dimensions"]["primary_endpoint"] == "PFS"
