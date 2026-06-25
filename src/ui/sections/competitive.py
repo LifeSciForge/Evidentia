@@ -2,10 +2,12 @@
 MSL Tab: Competitive Position section.
 
 Moved from src/ui/app.py as part of Stage 5 — Architecture Refactor (Part 2).
+Interactive 2-drug comparison table added in Stage 6.
 """
 
 import streamlit as st
 from src.ui.helpers import _tab_heading, _section_label
+from src.ui.components import source_chip_html
 
 
 _COMPARISON_ROWS = [
@@ -17,97 +19,210 @@ _COMPARISON_ROWS = [
     ("approval_status",  "Approval Status"),
 ]
 
+_SELECTOR_PLACEHOLDER = "— Select a competitor —"
 
-def _render_comparison_table(drug: str, competitor_data) -> None:
-    """Render a side-by-side HTML comparison table.
 
-    Columns: dimension label | subject drug | up to 3 competitors.
+def _render_interactive_comparison_table(
+    drug: str,
+    subject_row: dict,
+    comp_row: dict,
+    chosen_competitor: str,
+) -> None:
+    """Render an interactive 2-drug side-by-side HTML comparison table.
+
+    Columns: dimension label | subject drug | chosen competitor.
+    Each drug column header shows: drug name, trial phase, NCT chip (when available).
     Empty / missing values show "—".
-    Renders gracefully with zero competitors (subject column only).
     """
-    subject = getattr(competitor_data, "subject_comparison", {}) or {}
-    competitors = list(getattr(competitor_data, "competitors", []) or [])[:3]
 
-    # --- build header row ---
-    header_cells = (
-        '<th style="background:#5b5bd6;color:#fff;font-size:11px;font-weight:700;'
-        'text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;'
-        'min-width:110px;">Dimension</th>'
-        f'<th style="background:#5b5bd6;color:#fff;font-size:11px;font-weight:700;'
-        f'text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;'
-        f'min-width:130px;">{drug}</th>'
-    )
-    for comp in competitors:
-        name = getattr(comp, "competitor_name", "") or "Competitor"
-        header_cells += (
-            f'<th style="background:#3d3d7a;color:#fff;font-size:11px;font-weight:700;'
-            f'text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;'
-            f'min-width:130px;">{name}</th>'
+    def _header_cell(drug_label: str, row: dict, bg: str) -> str:
+        phase = row.get("phase", "") or ""
+        nct_id = row.get("nct_id", "") or ""
+        nct_url = row.get("nct_url", "") or ""
+
+        phase_html = (
+            f'<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.75);'
+            f'margin-left:6px;">({phase})</span>'
+            if phase else ""
         )
 
-    # --- build data rows ---
+        if nct_id:
+            chip = source_chip_html("verified", nct_id, url=nct_url or None,
+                                    note=f"ClinicalTrials.gov — highest-phase trial")
+            chip_html = (
+                f'<div style="margin-top:6px;font-size:10px;">{chip}</div>'
+            )
+        else:
+            chip_html = (
+                '<div style="margin-top:6px;font-size:10px;color:rgba(255,255,255,0.55);">'
+                'No trial found</div>'
+            )
+
+        return (
+            f'<th style="background:{bg};color:#fff;font-size:11px;font-weight:700;'
+            f'text-transform:uppercase;letter-spacing:.07em;padding:10px 12px;text-align:left;'
+            f'min-width:180px;vertical-align:top;">'
+            f'{drug_label}{phase_html}'
+            f'{chip_html}'
+            f'</th>'
+        )
+
+    dim_header = (
+        '<th style="background:#5b5bd6;color:#fff;font-size:11px;font-weight:700;'
+        'text-transform:uppercase;letter-spacing:.07em;padding:10px 12px;text-align:left;'
+        'min-width:120px;">Dimension</th>'
+    )
+    subject_header = _header_cell(drug, subject_row, "#5b5bd6")
+    comp_header = _header_cell(chosen_competitor, comp_row, "#3d3d7a")
+
+    # --- data rows ---
     data_rows = ""
+    subj_dims = subject_row.get("dimensions", {}) or {}
+    comp_dims = comp_row.get("dimensions", {}) or {}
+
     for i, (field_key, label) in enumerate(_COMPARISON_ROWS):
         bg = "#ffffff" if i % 2 == 0 else "#f7f7fb"
+
         label_cell = (
             f'<td style="background:{bg};font-size:11px;font-weight:700;color:#666;'
             f'text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;'
             f'border-bottom:1px solid #e8e8f0;white-space:nowrap;">{label}</td>'
         )
-        subject_val = subject.get(field_key, "") or ""
-        subject_display = subject_val if subject_val.strip() else "—"
+
+        subj_val = subj_dims.get(field_key, "") or ""
+        subj_display = subj_val.strip() if subj_val.strip() else "—"
         subject_cell = (
             f'<td style="background:{bg};font-size:12px;color:#333;padding:8px 12px;'
-            f'border-bottom:1px solid #e8e8f0;line-height:1.4;">{subject_display}</td>'
+            f'border-bottom:1px solid #e8e8f0;line-height:1.4;">{subj_display}</td>'
         )
-        comp_cells = ""
-        for comp in competitors:
-            raw = getattr(comp, field_key, "") or ""
-            display = raw if (isinstance(raw, str) and raw.strip()) else "—"
-            comp_cells += (
-                f'<td style="background:{bg};font-size:12px;color:#555;padding:8px 12px;'
-                f'border-bottom:1px solid #e8e8f0;line-height:1.4;">{display}</td>'
-            )
-        data_rows += f"<tr>{label_cell}{subject_cell}{comp_cells}</tr>"
+
+        comp_val = comp_dims.get(field_key, "") or ""
+        comp_display = comp_val.strip() if comp_val.strip() else "—"
+        comp_cell = (
+            f'<td style="background:{bg};font-size:12px;color:#555;padding:8px 12px;'
+            f'border-bottom:1px solid #e8e8f0;line-height:1.4;">{comp_display}</td>'
+        )
+
+        data_rows += f"<tr>{label_cell}{subject_cell}{comp_cell}</tr>"
 
     html = (
         '<div style="overflow-x:auto;margin-bottom:24px;">'
         '<table style="border-collapse:collapse;width:100%;font-family:\'Inter\','
         '\'Helvetica Neue\',sans-serif;border:1px solid #e0e0e0;border-radius:4px;">'
-        f"<thead><tr>{header_cells}</tr></thead>"
-        f"<tbody>{data_rows}</tbody>"
-        "</table></div>"
+        f'<thead><tr>{dim_header}{subject_header}{comp_header}</tr></thead>'
+        f'<tbody>{data_rows}</tbody>'
+        '</table></div>'
     )
     st.markdown(html, unsafe_allow_html=True)
 
 
 def display_competitive_section(state):
-    """Professional competitive landscape tab."""
+    """Professional competitive landscape tab with interactive 2-drug CI comparison."""
 
     drug = getattr(state, "drug_name", "this drug") or "this drug"
     indication = getattr(state, "indication", "") or ""
 
     _tab_heading("Competitive Landscape",
-                 f"Competitor comparison and {drug} differentiation" + (f" in {indication}" if indication else ""))
+                 f"Competitor comparison and {drug} differentiation"
+                 + (f" in {indication}" if indication else ""))
 
     if not state.competitor_data:
         st.warning("No competitor data available.")
         return
 
-    competitors = state.competitor_data.competitors[:3]
+    competitors = list(getattr(state.competitor_data, "competitors", []) or [])
 
-    # ── Side-by-side comparison table ─────────────────────────────────────────
+    # ── Interactive 2-drug comparison ─────────────────────────────────────────
     _section_label("Head-to-Head Comparison")
     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-    _render_comparison_table(drug, state.competitor_data)
+
+    # Selector UI
+    comp_names = [
+        c.competitor_name
+        for c in competitors
+        if getattr(c, "competitor_name", None)
+    ]
+    dropdown_options = [_SELECTOR_PLACEHOLDER] + comp_names
+
+    col_sel, col_txt = st.columns([2, 2])
+    with col_sel:
+        selected = st.selectbox("Compare against", options=dropdown_options)
+    with col_txt:
+        typed = st.text_input("…or type any drug", placeholder="e.g. adagrasib").strip()
+
+    # Resolve chosen competitor — typed input wins if non-empty
+    if typed:
+        chosen_competitor = typed
+    elif selected != _SELECTOR_PLACEHOLDER:
+        chosen_competitor = selected
+    else:
+        chosen_competitor = None
+
+    if chosen_competitor is None:
+        # No selection — show prompt, skip any fetch
+        st.info(
+            f"Select or type a competitor above to compare against **{drug}**."
+        )
+    else:
+        # Lazy import to keep module-level imports minimal
+        from src.service.comparison import build_comparison_row
+        from src.service.cache.cache_manager import CacheManager
+
+        # Reuse or create a session-scoped cache
+        if "_cmp_cache" not in st.session_state:
+            st.session_state["_cmp_cache"] = CacheManager()
+        cache = st.session_state["_cmp_cache"]
+
+        subject_row: dict | None = None
+        comp_row: dict | None = None
+        fetch_error: str | None = None
+
+        with st.spinner("Fetching highest-phase trial data…"):
+            try:
+                subject_row = build_comparison_row(
+                    drug,
+                    retrieved_trials=(
+                        getattr(state.market_data, "clinical_trials", None) or []
+                    ),
+                    cache=cache,
+                )
+            except Exception as exc:
+                fetch_error = f"Could not load subject drug data: {exc}"
+
+            try:
+                comp_row = build_comparison_row(
+                    chosen_competitor,
+                    retrieved_trials=None,  # live fetch for competitor
+                    cache=cache,
+                )
+            except Exception as exc:
+                if fetch_error:
+                    fetch_error += f" | {exc}"
+                else:
+                    fetch_error = f"Could not load competitor data: {exc}"
+
+        if fetch_error:
+            st.warning(
+                f"Some trial data could not be retrieved ({fetch_error}). "
+                "Partial results are shown below."
+            )
+
+        # Always render the table (with whatever rows we have — use empty dicts on failure)
+        _render_interactive_comparison_table(
+            drug=drug,
+            subject_row=subject_row or {},
+            comp_row=comp_row or {},
+            chosen_competitor=chosen_competitor,
+        )
 
     # ── Competitor cards (side-by-side) ───────────────────────────────────────
     _section_label("How We Compare")
     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
-    if competitors:
-        cols = st.columns(len(competitors))
-        for i, comp in enumerate(competitors):
+    top_competitors = competitors[:3]
+    if top_competitors:
+        cols = st.columns(len(top_competitors))
+        for i, comp in enumerate(top_competitors):
             share = f"{comp.market_share:.1f}%" if comp.market_share else "N/A"
             pricing = f"${comp.pricing:,.0f}" if comp.pricing else "N/A"
             positioning = comp.positioning or "Standard of care"
@@ -174,7 +289,7 @@ def display_competitive_section(state):
         st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
 
     # ── Tactical responses ────────────────────────────────────────────────────
-    if competitors:
+    if top_competitors:
         st.markdown(
             '<hr style="border:none;border-top:1px solid #E8E8E8;margin:0 0 24px 0;">',
             unsafe_allow_html=True
@@ -182,7 +297,7 @@ def display_competitive_section(state):
         _section_label("What to Say When...")
         st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
-        for comp in competitors:
+        for comp in top_competitors:
             comp_name = comp.competitor_name
             comp_advantages = comp.clinical_advantages[:1]
             adv_text = comp_advantages[0] if comp_advantages else "established market presence"
