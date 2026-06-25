@@ -119,6 +119,13 @@ class CompetitorItem(BaseModel):
     clinical_disadvantages: list[str] = []
     launch_date: str = "Unknown"
     annual_sales: float = 0.0
+    # Comparison table dimensions — permissive; missing → ""
+    mechanism: str = ""
+    efficacy: str = ""
+    key_safety: str = ""
+    primary_endpoint: str = ""
+    dosing: str = ""
+    approval_status: str = ""
 
     @field_validator("market_share", "pricing", "annual_sales", mode="before")
     @classmethod
@@ -132,6 +139,8 @@ class CompetitorResponse(BaseModel):
     positioning_strategy: str = ""
     threats: list[str] = []
     opportunities: list[str] = []
+    # Subject-drug row for the comparison table
+    subject_comparison: dict = {}
 
 
 class MarketResearchResponse(BaseModel):

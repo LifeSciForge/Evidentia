@@ -100,6 +100,13 @@ class CompetitorData:
     clinical_disadvantages: List[str] = field(default_factory=list)
     launch_date: Optional[str] = None
     sales_data: Optional[float] = None
+    # Comparison table dimensions (empty string → renders "—")
+    mechanism: str = ""
+    efficacy: str = ""
+    key_safety: str = ""
+    primary_endpoint: str = ""
+    dosing: str = ""
+    approval_status: str = ""
 
 
 @dataclass
@@ -112,6 +119,8 @@ class CompetitorAnalysisData:
     competitive_opportunities: List[str] = field(default_factory=list)
     competitive_timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     competitive_notes: str = ""
+    # Subject-drug row for the comparison table (same six keys as CompetitorData)
+    subject_comparison: Dict[str, str] = field(default_factory=dict)
 
 
 @dataclass

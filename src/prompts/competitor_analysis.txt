@@ -19,6 +19,24 @@ For each competitor:
 7. Clinical disadvantages
 8. Launch date (if available)
 9. Annual sales (if available)
+10. Mechanism of action (concise phrase, e.g. "KRAS G12C inhibitor")
+11. Efficacy (key result from a named trial, e.g. "ORR 43% (KRYSTAL-1)")
+12. Key safety concern (most notable AE, e.g. "GI toxicity, GGT elevation")
+13. Primary endpoint achieved (e.g. "PFS vs docetaxel (KRYSTAL-12)")
+14. Dosing regimen (e.g. "400 mg BID orally")
+15. Approval status (e.g. "FDA approved Dec 2022; NICE approved Jan 2024")
+
+Also provide the SAME six dimensions for the SUBJECT DRUG ({drug_name}) in a "subject_comparison" object:
+- mechanism: mechanism of action
+- efficacy: key efficacy result from a named trial
+- key_safety: most notable safety concern
+- primary_endpoint: primary endpoint achieved in the pivotal trial
+- dosing: dosing regimen
+- approval_status: current approval status
+
+CRITICAL RULE: If a value is NOT clearly stated in the retrieved market data above, return an
+empty string "" for that field. DO NOT invent numbers, percentages, trial names, or dates.
+Use concise phrases (not full sentences) and name the source trial where known.
 
 Also provide:
 - Overall competitive gaps in the market
@@ -40,9 +58,23 @@ Use this exact structure:
       "clinical_advantages": ["string"],
       "clinical_disadvantages": ["string"],
       "launch_date": "string",
-      "annual_sales": 0.0
+      "annual_sales": 0.0,
+      "mechanism": "string or empty string",
+      "efficacy": "string or empty string",
+      "key_safety": "string or empty string",
+      "primary_endpoint": "string or empty string",
+      "dosing": "string or empty string",
+      "approval_status": "string or empty string"
     }}
   ],
+  "subject_comparison": {{
+    "mechanism": "string or empty string",
+    "efficacy": "string or empty string",
+    "key_safety": "string or empty string",
+    "primary_endpoint": "string or empty string",
+    "dosing": "string or empty string",
+    "approval_status": "string or empty string"
+  }},
   "competitive_gaps": {{"gap_1": "description"}},
   "positioning_strategy": "string",
   "threats": ["string"],

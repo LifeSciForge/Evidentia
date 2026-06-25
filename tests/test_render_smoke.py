@@ -126,6 +126,13 @@ def populated_state() -> GTMState:
         clinical_disadvantages=["More drug-drug interactions", "GI toxicity profile"],
         launch_date="2022-12-22",
         sales_data=300.0,
+        # Comparison table dimensions
+        mechanism="KRAS G12C inhibitor",
+        efficacy="ORR 43% (KRYSTAL-1)",
+        key_safety="GI toxicity, GGT elevation",
+        primary_endpoint="PFS vs docetaxel (KRYSTAL-12)",
+        dosing="400 mg BID orally",
+        approval_status="FDA approved Dec 2022",
     )
 
     competitor_analysis = CompetitorAnalysisData(
@@ -135,6 +142,14 @@ def populated_state() -> GTMState:
         competitive_threats=["adagrasib combination approvals"],
         competitive_opportunities=["First-mover advantage in KRAS G12C inhibition"],
         competitive_notes="Market data sourced from public filings",
+        subject_comparison={
+            "mechanism": "KRAS G12C inhibitor (irreversible)",
+            "efficacy": "ORR 37.1% (CodeBreaK 100)",
+            "key_safety": "Hepatotoxicity, diarrhea",
+            "primary_endpoint": "ORR in 2L+ NSCLC (CodeBreaK 100)",
+            "dosing": "960 mg QD orally",
+            "approval_status": "FDA approved May 2021",
+        },
     )
 
     icp = ICPProfile(
@@ -340,6 +355,12 @@ class TestPopulatedState:
 
     def test_display_competitive_section(self):
         state = populated_state()
+        display_competitive_section(state)
+
+    def test_display_competitive_section_comparison_table(self):
+        """Comparison table renders with ≥1 competitor and subject_comparison set."""
+        state = populated_state()
+        # populated_state already has 1 competitor + subject_comparison — just call again
         display_competitive_section(state)
 
     def test_display_final_brief_section(self):

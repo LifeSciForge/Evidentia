@@ -8,6 +8,79 @@ import streamlit as st
 from src.ui.helpers import _tab_heading, _section_label
 
 
+_COMPARISON_ROWS = [
+    ("mechanism",        "Mechanism"),
+    ("efficacy",         "Efficacy"),
+    ("key_safety",       "Key Safety"),
+    ("primary_endpoint", "Primary Endpoint"),
+    ("dosing",           "Dosing"),
+    ("approval_status",  "Approval Status"),
+]
+
+
+def _render_comparison_table(drug: str, competitor_data) -> None:
+    """Render a side-by-side HTML comparison table.
+
+    Columns: dimension label | subject drug | up to 3 competitors.
+    Empty / missing values show "—".
+    Renders gracefully with zero competitors (subject column only).
+    """
+    subject = getattr(competitor_data, "subject_comparison", {}) or {}
+    competitors = list(getattr(competitor_data, "competitors", []) or [])[:3]
+
+    # --- build header row ---
+    header_cells = (
+        '<th style="background:#5b5bd6;color:#fff;font-size:11px;font-weight:700;'
+        'text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;'
+        'min-width:110px;">Dimension</th>'
+        f'<th style="background:#5b5bd6;color:#fff;font-size:11px;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;'
+        f'min-width:130px;">{drug}</th>'
+    )
+    for comp in competitors:
+        name = getattr(comp, "competitor_name", "") or "Competitor"
+        header_cells += (
+            f'<th style="background:#3d3d7a;color:#fff;font-size:11px;font-weight:700;'
+            f'text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;'
+            f'min-width:130px;">{name}</th>'
+        )
+
+    # --- build data rows ---
+    data_rows = ""
+    for i, (field_key, label) in enumerate(_COMPARISON_ROWS):
+        bg = "#ffffff" if i % 2 == 0 else "#f7f7fb"
+        label_cell = (
+            f'<td style="background:{bg};font-size:11px;font-weight:700;color:#666;'
+            f'text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;'
+            f'border-bottom:1px solid #e8e8f0;white-space:nowrap;">{label}</td>'
+        )
+        subject_val = subject.get(field_key, "") or ""
+        subject_display = subject_val if subject_val.strip() else "—"
+        subject_cell = (
+            f'<td style="background:{bg};font-size:12px;color:#333;padding:8px 12px;'
+            f'border-bottom:1px solid #e8e8f0;line-height:1.4;">{subject_display}</td>'
+        )
+        comp_cells = ""
+        for comp in competitors:
+            raw = getattr(comp, field_key, "") or ""
+            display = raw if (isinstance(raw, str) and raw.strip()) else "—"
+            comp_cells += (
+                f'<td style="background:{bg};font-size:12px;color:#555;padding:8px 12px;'
+                f'border-bottom:1px solid #e8e8f0;line-height:1.4;">{display}</td>'
+            )
+        data_rows += f"<tr>{label_cell}{subject_cell}{comp_cells}</tr>"
+
+    html = (
+        '<div style="overflow-x:auto;margin-bottom:24px;">'
+        '<table style="border-collapse:collapse;width:100%;font-family:\'Inter\','
+        '\'Helvetica Neue\',sans-serif;border:1px solid #e0e0e0;border-radius:4px;">'
+        f"<thead><tr>{header_cells}</tr></thead>"
+        f"<tbody>{data_rows}</tbody>"
+        "</table></div>"
+    )
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def display_competitive_section(state):
     """Professional competitive landscape tab."""
 
@@ -22,6 +95,11 @@ def display_competitive_section(state):
         return
 
     competitors = state.competitor_data.competitors[:3]
+
+    # ── Side-by-side comparison table ─────────────────────────────────────────
+    _section_label("Head-to-Head Comparison")
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+    _render_comparison_table(drug, state.competitor_data)
 
     # ── Competitor cards (side-by-side) ───────────────────────────────────────
     _section_label("How We Compare")

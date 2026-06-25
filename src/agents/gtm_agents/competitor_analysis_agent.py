@@ -107,10 +107,25 @@ async def competitor_analysis_agent(state: GTMState) -> GTMState:
                 clinical_advantages=comp.get("clinical_advantages", []),
                 clinical_disadvantages=comp.get("clinical_disadvantages", []),
                 launch_date=comp.get("launch_date"),
-                sales_data=comp.get("annual_sales")
+                sales_data=comp.get("annual_sales"),
+                # Comparison table dimensions — empty string when LLM didn't provide
+                mechanism=comp.get("mechanism", ""),
+                efficacy=comp.get("efficacy", ""),
+                key_safety=comp.get("key_safety", ""),
+                primary_endpoint=comp.get("primary_endpoint", ""),
+                dosing=comp.get("dosing", ""),
+                approval_status=comp.get("approval_status", ""),
             )
             competitors_list.append(competitor_obj)
-        
+
+        # Extract subject_comparison (six dimensions for the subject drug)
+        subject_comparison: Dict[str, str] = {}
+        raw_subject = competitor_data_dict.get("subject_comparison", {})
+        if isinstance(raw_subject, dict):
+            for key in ("mechanism", "efficacy", "key_safety", "primary_endpoint", "dosing", "approval_status"):
+                val = raw_subject.get(key, "")
+                subject_comparison[key] = val if isinstance(val, str) else ""
+
         # Step 5: Create CompetitorAnalysisData object
         competitor_analysis_data = CompetitorAnalysisData(
             competitors=competitors_list,
@@ -118,7 +133,8 @@ async def competitor_analysis_agent(state: GTMState) -> GTMState:
             market_positioning_strategy=competitor_data_dict.get("positioning_strategy", ""),
             competitive_threats=competitor_data_dict.get("threats", []),
             competitive_opportunities=competitor_data_dict.get("opportunities", []),
-            competitive_notes=f"Analyzed {len(competitors_list)} main competitors in {state.indication}"
+            competitive_notes=f"Analyzed {len(competitors_list)} main competitors in {state.indication}",
+            subject_comparison=subject_comparison,
         )
         
         # Update state
