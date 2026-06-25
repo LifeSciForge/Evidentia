@@ -5,6 +5,7 @@ Moved from src/ui/app.py as part of Stage 5 — Architecture Refactor (Part 2).
 Interactive 2-drug comparison table added in Stage 6.
 """
 
+import re
 import streamlit as st
 from src.ui.helpers import _tab_heading, _section_label
 from src.ui.components import source_chip_html
@@ -16,10 +17,31 @@ _COMPARISON_ROWS = [
     ("key_safety",       "Key Safety"),
     ("primary_endpoint", "Primary Endpoint"),
     ("dosing",           "Dosing"),
-    ("approval_status",  "Approval Status"),
+    ("approval_status",  "Trial status"),
 ]
 
-_SELECTOR_PLACEHOLDER = "— Select a competitor —"
+# Session state key for the competitor text input
+_COMP_INPUT_KEY = "_comp_text_input"
+
+
+def _short_endpoint(text: str) -> str:
+    """Trim verbose registry tail from a primary endpoint string.
+
+    Strips at common verbose suffixes: " as Assessed", " as assessed", " per "
+    and any trailing parenthetical method clause.  If trimming would produce an
+    empty string the original text is returned unchanged.
+    """
+    if not text:
+        return text
+    # Cut at known verbose suffixes (case-insensitive)
+    pattern = re.compile(
+        r"\s*(as assessed\b| as Assessed\b| per )",
+        re.IGNORECASE,
+    )
+    trimmed = pattern.split(text)[0].strip()
+    # Also strip a trailing bare parenthetical if it's now the last thing
+    trimmed = re.sub(r"\s*\([^)]+\)\s*$", "", trimmed).strip()
+    return trimmed if trimmed else text
 
 
 def _render_interactive_comparison_table(
@@ -31,7 +53,8 @@ def _render_interactive_comparison_table(
     """Render an interactive 2-drug side-by-side HTML comparison table.
 
     Columns: dimension label | subject drug | chosen competitor.
-    Each drug column header shows: drug name, trial phase, NCT chip (when available).
+    Each drug column header shows: drug name, trial phase, NCT chip (when
+    available) AND a PMID publication chip (when available).
     Empty / missing values show "—".
     """
 
@@ -39,6 +62,8 @@ def _render_interactive_comparison_table(
         phase = row.get("phase", "") or ""
         nct_id = row.get("nct_id", "") or ""
         nct_url = row.get("nct_url", "") or ""
+        pmid = row.get("pmid", "") or ""
+        pmid_url = row.get("pmid_url", "") or ""
 
         phase_html = (
             f'<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.75);'
@@ -46,16 +71,27 @@ def _render_interactive_comparison_table(
             if phase else ""
         )
 
+        chips_parts = []
         if nct_id:
             chip = source_chip_html("verified", nct_id, url=nct_url or None,
-                                    note=f"ClinicalTrials.gov — highest-phase trial")
+                                    note="ClinicalTrials.gov — highest-phase trial")
+            chips_parts.append(chip)
+        if pmid:
+            pub_chip = source_chip_html("verified", f"PMID {pmid}", url=pmid_url or None,
+                                        note="PubMed publication")
+            chips_parts.append(pub_chip)
+
+        if chips_parts:
             chip_html = (
-                f'<div style="margin-top:6px;font-size:10px;">{chip}</div>'
+                f'<div style="margin-top:6px;font-size:10px;display:flex;gap:6px;'
+                f'flex-wrap:wrap;">'
+                + "".join(chips_parts)
+                + "</div>"
             )
         else:
             chip_html = (
                 '<div style="margin-top:6px;font-size:10px;color:rgba(255,255,255,0.55);">'
-                'No trial found</div>'
+                'No source found</div>'
             )
 
         return (
@@ -90,6 +126,8 @@ def _render_interactive_comparison_table(
         )
 
         subj_val = subj_dims.get(field_key, "") or ""
+        if field_key == "primary_endpoint":
+            subj_val = _short_endpoint(subj_val)
         subj_display = subj_val.strip() if subj_val.strip() else "—"
         subject_cell = (
             f'<td style="background:{bg};font-size:12px;color:#333;padding:8px 12px;'
@@ -97,6 +135,8 @@ def _render_interactive_comparison_table(
         )
 
         comp_val = comp_dims.get(field_key, "") or ""
+        if field_key == "primary_endpoint":
+            comp_val = _short_endpoint(comp_val)
         comp_display = comp_val.strip() if comp_val.strip() else "—"
         comp_cell = (
             f'<td style="background:{bg};font-size:12px;color:#555;padding:8px 12px;'
@@ -136,27 +176,29 @@ def display_competitive_section(state):
     _section_label("Head-to-Head Comparison")
     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
-    # Selector UI
+    # Single text input (sole source of truth for chosen competitor)
+    typed = st.text_input(
+        "Compare against",
+        placeholder="e.g. adagrasib",
+        key=_COMP_INPUT_KEY,
+    ).strip()
+
+    # Suggestion chips — quick-pick buttons for each named competitor in the brief
     comp_names = [
         c.competitor_name
         for c in competitors
         if getattr(c, "competitor_name", None)
     ]
-    dropdown_options = [_SELECTOR_PLACEHOLDER] + comp_names
+    if comp_names:
+        chip_cols = st.columns(len(comp_names))
+        for idx, name in enumerate(comp_names):
+            with chip_cols[idx]:
+                if st.button(name, key=f"_chip_{name}"):
+                    st.session_state[_COMP_INPUT_KEY] = name
+                    st.rerun()
 
-    col_sel, col_txt = st.columns([2, 2])
-    with col_sel:
-        selected = st.selectbox("Compare against", options=dropdown_options)
-    with col_txt:
-        typed = st.text_input("…or type any drug", placeholder="e.g. adagrasib").strip()
-
-    # Resolve chosen competitor — typed input wins if non-empty
-    if typed:
-        chosen_competitor = typed
-    elif selected != _SELECTOR_PLACEHOLDER:
-        chosen_competitor = selected
-    else:
-        chosen_competitor = None
+    # Resolve chosen competitor — text input value (typed or chip-set), stripped
+    chosen_competitor = typed if typed else None
 
     if chosen_competitor is None:
         # No selection — show prompt, skip any fetch
@@ -216,11 +258,12 @@ def display_competitive_section(state):
         )
 
     # ── Competitor cards (side-by-side) ───────────────────────────────────────
-    _section_label("How We Compare")
-    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-
+    # Only render "HOW WE COMPARE" header when there are actual competitors to show
     top_competitors = competitors[:3]
     if top_competitors:
+        _section_label("How We Compare")
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
         cols = st.columns(len(top_competitors))
         for i, comp in enumerate(top_competitors):
             share = f"{comp.market_share:.1f}%" if comp.market_share else "N/A"
