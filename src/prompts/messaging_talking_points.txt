@@ -17,6 +17,16 @@ CRITICAL CONSTRAINTS:
 4. KOL-relevant — addresses this specific doctor's likely patient population
 5. Non-promotional — no "first-in-class", "breakthrough", "game-changing", "next evolution"
 
+SPECIFICITY RULES — mandatory for all fields:
+- ALWAYS name the SPECIFIC mechanism of action of {drug_name} (e.g. "covalent KRAS G12C inhibitor", "anti-PD-L1 checkpoint inhibitor"). NEVER write "a distinct mechanism" or "a clinically validated pathway".
+- For each pillar, the trial_name field MUST contain either the trial's proper name (e.g. "CodeBreaK 100") or its NCT ID (e.g. "NCT04665128") drawn from the Clinical Data Available above. If no trial is available, use an empty string — do NOT invent a trial name.
+- The key_data_point field MUST contain a concrete figure (e.g. "37.1% confirmed ORR", "median PFS 6.3 months") drawn from the Clinical Data Available above. If no figure is available, use an empty string — do NOT invent numbers.
+- The source field MUST contain a real citation drawn from the Clinical Data Available (e.g. "NEJM 2021; PMID 34096690"). If no real citation is available, use an empty string.
+- FORBIDDEN vague filler — never use: "a distinct mechanism", "a clinically validated pathway", "patient populations with limited current options", "demonstrated clinical benefit", "clinical activity in this population" without immediately following with a named trial and number.
+- If the Clinical Data Available does not support a specific claim for a pillar, omit that claim and use empty strings for that pillar's evidence fields. DO NOT invent data.
+- The msl_talking_point for each pillar must name {drug_name} explicitly AND reference the specific trial or mechanism being discussed.
+- why_relevant_to_kol must explain relevance to THIS specific doctor at THIS specific institution — not a generic statement about "oncologists".
+
 Return ONLY valid JSON:
 {{
   "doctor_profile": {{

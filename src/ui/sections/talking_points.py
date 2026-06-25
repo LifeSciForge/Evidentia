@@ -4,8 +4,68 @@ MSL Tab: Talking Points section.
 Moved from src/ui/app.py as part of Stage 5 — Architecture Refactor (Part 2).
 """
 
+import re
 import streamlit as st
 from src.ui.helpers import _tab_heading, _section_label
+
+
+def _resolve_source_url(evidence, state) -> tuple[str, str]:
+    """
+    Return (display_label, url) for a pillar's evidence ONLY when a real
+    retrieved record confirms the id.
+
+    Strategy (honest / safe):
+    1. If evidence.trial_name looks like an NCT id (starts with NCT), check
+       state.market_data.clinical_trials for a matching nct_id.  If found,
+       build the canonical ClinicalTrials.gov URL from that confirmed id.
+    2. Otherwise, check whether evidence.trial_name (case-insensitive) appears
+       in any clinical trial's title — if yes, use that trial's nct_id to build
+       the URL.
+    3. If evidence.source contains a PMID (digits only, or "PMID NNNNN"), check
+       state.market_data.key_publications for a matching pmid and use
+       pubmed.ncbi.nlm.nih.gov URL built from the confirmed pmid.
+    4. If nothing matches, return ("", "") — no chip is shown.
+
+    We NEVER fabricate a URL.  Only ids confirmed present in the retrieved
+    market_data records produce a link.
+    """
+    if not evidence:
+        return ("", "")
+
+    market_data = getattr(state, "market_data", None)
+    trials = (market_data.clinical_trials or []) if market_data else []
+    pubs = (market_data.key_publications or []) if market_data else []
+
+    trial_name = (evidence.trial_name or "").strip()
+    source_text = (evidence.source or "").strip()
+
+    # ── 1. Match by NCT id ────────────────────────────────────────────────────
+    nct_match = re.match(r"(?i)(NCT\d{8})", trial_name)
+    if nct_match:
+        nct_id = nct_match.group(1).upper()
+        for t in trials:
+            if (t.get("nct_id") or "").upper() == nct_id:
+                return (nct_id, f"https://clinicaltrials.gov/study/{nct_id}")
+
+    # ── 2. Match by trial name substring ─────────────────────────────────────
+    if trial_name:
+        name_lower = trial_name.lower()
+        for t in trials:
+            t_title = (t.get("title") or "").lower()
+            t_nct = (t.get("nct_id") or "").upper()
+            if name_lower in t_title or (t_nct and t_nct.lower() in name_lower):
+                if t_nct:
+                    return (t_nct, f"https://clinicaltrials.gov/study/{t_nct}")
+
+    # ── 3. Match by PMID in source field ──────────────────────────────────────
+    pmid_match = re.search(r"(?i)(?:PMID\s*:?\s*)?(\b\d{7,8}\b)", source_text)
+    if pmid_match:
+        pmid = pmid_match.group(1)
+        for p in pubs:
+            if str(p.get("pmid") or "").strip() == pmid:
+                return (f"PMID {pmid}", f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/")
+
+    return ("", "")
 
 
 def display_talking_points_section(state):
@@ -80,6 +140,16 @@ def _render_msl_talking_points(state, tp):
             f'<div class="tp-pillar-relevance">{pillar.why_relevant_to_kol}</div>'
             if getattr(pillar, "why_relevant_to_kol", "") else ""
         )
+        # Source chip: only when we can confirm the id against retrieved data
+        chip_label, chip_url = _resolve_source_url(ev, state)
+        if chip_label and chip_url:
+            source_chip_html = (
+                f'<a class="tp-source-chip" href="{chip_url}" target="_blank" '
+                f'rel="noopener noreferrer">{chip_label}</a>'
+            )
+        else:
+            source_chip_html = ""
+
         with cols[i]:
             st.markdown(f"""
             <div class="tp-pillar">
@@ -89,6 +159,7 @@ def _render_msl_talking_points(state, tp):
                 {data_point_html}
                 <div class="tp-talking-point">{getattr(pillar, "msl_talking_point", "")}</div>
                 {relevance_html}
+                {source_chip_html}
             </div>
             """, unsafe_allow_html=True)
 
@@ -202,16 +273,29 @@ def _render_msl_talking_points(state, tp):
 
 
 def _render_generic_talking_points(state):
-    """Fallback: render generic content when no KOL is selected."""
+    """Fallback: render generic positioning content when no KOL is selected.
 
+    Layout is intentionally labelled "General positioning" so users are not
+    misled into thinking the content below is KOL-specific.  A single,
+    contextual note at the bottom invites them to select a physician — it is
+    never shown above the content as if the content were already KOL-tailored.
+    """
+
+    # ── Section header — unambiguously general ────────────────────────────────
     st.markdown("""
-    <div class="tp-generic-notice">
-        Select a physician in the sidebar to generate KOL-specific talking points.
+    <div class="tp-general-header">
+        <span class="tp-general-title">General positioning</span>
     </div>
     """, unsafe_allow_html=True)
 
     if not state.messaging_data:
         st.warning("No messaging data available.")
+        # Still show the physician-select prompt — single, bottom-aligned
+        st.markdown("""
+        <div class="tp-kol-prompt">
+            Select a physician in the sidebar for KOL-tailored talking points.
+        </div>
+        """, unsafe_allow_html=True)
         return
 
     if state.messaging_data.positioning_statement:
@@ -242,3 +326,11 @@ def _render_generic_talking_points(state):
                 {pillar}
             </div>
             """, unsafe_allow_html=True)
+
+    # ── Single, unambiguous KOL prompt at the bottom ──────────────────────────
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="tp-kol-prompt">
+        Select a physician in the sidebar for KOL-tailored talking points.
+    </div>
+    """, unsafe_allow_html=True)

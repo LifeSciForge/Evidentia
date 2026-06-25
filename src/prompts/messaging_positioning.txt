@@ -6,6 +6,17 @@ RULE: Never lead with a competitor's weakness. Always lead with {drug_name}'s st
 RULE: When a competitor is well-established, acknowledge it, then pivot to what {drug_name} uniquely offers.
 RULE: Competitive statements must end on {drug_name}'s benefit, not on a competitor's problem.
 
+SPECIFICITY RULES — apply to every field you write:
+- ALWAYS name the SPECIFIC mechanism of action of {drug_name} (e.g. "covalent KRAS G12C inhibitor", "anti-PD-1 monoclonal antibody"). NEVER write "a distinct mechanism" or "a clinically validated pathway" without naming what that mechanism actually is.
+- ALWAYS reference SPECIFIC clinical trials by name (e.g. "CodeBreaK 100", "KEYNOTE-189") or NCT ID if available from the market context. NEVER write "clinical trials" without naming one.
+- ALWAYS include CONCRETE figures where the retrieved context supports them (e.g. "37.1% ORR", "median PFS 6.3 months"). NEVER write "demonstrated clinical benefit" without a number.
+- FORBIDDEN vague filler — never use these phrases unless directly tied to a named fact:
+    "a distinct mechanism", "a clinically validated pathway", "patient populations with limited current options",
+    "differentiated mechanism of action", "clinical activity in patient sub-populations", "tolerability data that supports sustained therapy"
+- If the retrieved market/competitor/payer context does NOT provide supporting data for a specific claim, OMIT that claim entirely. Do not invent numbers or trial names.
+- Each differentiator must be a complete sentence starting with "{drug_name}" and must name the specific mechanism, trial, or endpoint it refers to.
+- The positioning_statement must name the mechanism AND at least one specific patient population or endpoint.
+
 Drug: {drug_name}
 Indication: {indication}
 
@@ -24,46 +35,48 @@ Payer Context:
 Create a positioning framework with:
 
 1. Category Definition:
-   - What unmet clinical need does {drug_name} address?
-   - What patient population benefits most?
+   - What specific unmet clinical need does {drug_name} address? Name the molecular target or mechanism.
+   - What patient population benefits most? Be specific (e.g. "KRAS G12C-mutant NSCLC patients who progressed on platinum-based chemotherapy").
 
 2. Positioning Statement (one sentence):
-   - What {drug_name} uniquely does for patients
+   - What {drug_name} uniquely does for a specifically named patient population
+   - Must name the mechanism AND the population AND (if data is available) a headline efficacy figure
    - Must be affirmative — what we offer, not what others lack
 
-3. Key Differentiators — affirmative framing only:
-   - Mechanism of action advantage (what it uniquely targets or how)
-   - Efficacy in specific patient sub-populations where {drug_name} has an edge
-   - Safety or tolerability profile that benefits patients
+3. Key Differentiators — affirmative framing only, each naming a specific mechanism/trial/endpoint:
+   - Mechanism of action: name the specific molecular target and how {drug_name} engages it
+   - Efficacy: name a specific trial and a specific outcome metric with a number (if data is available)
+   - Safety or tolerability: name a specific adverse event profile or comparison (if data is available)
    Each differentiator must be a complete sentence starting with "{drug_name}..."
 
 4. Value Propositions by Persona:
-   - For CCO: revenue and market access opportunity
-   - For Market Access: payer value story
-   - For HEOR: health economics evidence
-   - For Medical Affairs: clinical evidence quality
+   - For CCO: revenue and market access opportunity — cite market size or patient population numbers if available
+   - For Market Access: payer value story — reference HTA status or QALY data if available
+   - For HEOR: health economics evidence — name specific trial endpoints
+   - For Medical Affairs: clinical evidence quality — name specific trials and endpoints
 
 5. Competitive Bridge Statements (one per major competitor):
-   Format: "Yes, [competitor] is [acknowledged strength]. And {drug_name} [unique strength that adds value for [specific patient population]."
+   Format: "Yes, [competitor] is [acknowledged strength]. And {drug_name} [specific mechanism/trial/endpoint advantage] for [specific patient population]."
    - Acknowledge the competitor's legitimacy first
-   - Pivot to {drug_name}'s complementary or additive advantage
-   - End on the patient benefit, not on the competitor's limitation
+   - Pivot to {drug_name}'s complementary or additive advantage — name the mechanism or trial
+   - End on the patient benefit with a specific named fact, not on the competitor's limitation
 
 6. Messaging Pillars (3 core clinical themes):
-   - Each pillar: a short clinical fact about {drug_name}, evidence-backed if possible
+   - Each pillar: a specific clinical fact about {drug_name} — name the mechanism, trial, or endpoint
+   - Do NOT write a pillar that is purely generic (e.g. "Differentiated mechanism of action") without naming what that mechanism is
 
 7. Common Objection Responses:
-   - Format: objection -> response that acknowledges the concern then pivots affirmatively
+   - Format: objection -> response that acknowledges the concern then pivots affirmatively using specific data
    - Include: "Why use {drug_name} when [established competitor] is proven?"
-   - Response must start with acknowledgment ("That's a fair point..."), then pivot
+   - Response must start with acknowledgment ("That's a fair point..."), then pivot with a named trial or mechanism
 
 Respond with ONLY valid JSON. No markdown, no explanation, no backticks. Raw JSON only.
 
 Keys required:
 - category_definition (string)
 - positioning_statement (string)
-- key_differentiators (list of strings, each starting with "{drug_name}")
+- key_differentiators (list of strings, each starting with "{drug_name}" and naming a specific mechanism/trial/endpoint)
 - value_propositions (object with persona names as keys)
-- competitive_vs_statements (list of strings, each in "Yes... And {drug_name}..." format)
-- messaging_pillars (list of strings)
-- common_objections (object: objection string -> response string that pivots affirmatively)
+- competitive_vs_statements (list of strings, each in "Yes... And {drug_name}..." format with specific named facts)
+- messaging_pillars (list of strings, each naming a specific mechanism/trial/endpoint)
+- common_objections (object: objection string -> response string that pivots affirmatively with named evidence)
