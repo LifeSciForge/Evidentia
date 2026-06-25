@@ -71,3 +71,5 @@ htmlcov/
 dist/
 build/
 EOF
+# Visual brainstorming companion (local only)
+.superpowers/

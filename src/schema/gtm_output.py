@@ -250,8 +250,8 @@ EXECUTIVE SUMMARY
 {self.executive_summary.key_insight}
 
 MARKET OPPORTUNITY
-TAM: ${self.market_opportunity.total_addressable_market:,.0f} {self.market_opportunity.currency}
-Patient Population: {self.market_opportunity.patient_population_total:,}
+TAM: ${(self.market_opportunity.total_addressable_market or 0):,.0f} {self.market_opportunity.currency}
+Patient Population: {(self.market_opportunity.patient_population_total or 0):,}
 
 TARGET SEGMENT
 {self.target_segment.segment_description}
