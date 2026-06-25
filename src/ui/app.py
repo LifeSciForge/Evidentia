@@ -382,35 +382,27 @@ def display_msl_results(state, hospital, doctor):
             _pop_value = f"{int(_pop):,}" if _pop else "—"
             with _metric_cols[0]:
                 metric_card(
-                    "Patient Population",
+                    "Eligible patients",
                     _pop_value,
                     source_html=chip_for(state, "market.patient_population"),
                 )
 
-            _tam = getattr(market_data, "tam_estimate", None)
-            _tam_value = (
-                f"${_tam/1e9:.1f}B" if _tam and _tam >= 1e9
-                else f"${_tam/1e6:.0f}M" if _tam
-                else "—"
-            )
+            _trials_count = len(getattr(market_data, "clinical_trials", None) or [])
+            _trials_value = str(_trials_count) if _trials_count else "—"
             with _metric_cols[1]:
                 metric_card(
-                    "Total Addressable Market",
-                    _tam_value,
-                    source_html=chip_for(state, "market.tam"),
+                    "Pivotal trials",
+                    _trials_value,
+                    subtitle="Clinical trials (ClinicalTrials.gov)",
                 )
 
-            _sam = getattr(market_data, "sam_estimate", None)
-            _sam_value = (
-                f"${_sam/1e9:.1f}B" if _sam and _sam >= 1e9
-                else f"${_sam/1e6:.0f}M" if _sam
-                else "—"
-            )
+            _pubs_count = len(getattr(market_data, "key_publications", None) or [])
+            _pubs_value = str(_pubs_count) if _pubs_count else "—"
             with _metric_cols[2]:
                 metric_card(
-                    "Serviceable Market",
-                    _sam_value,
-                    source_html=chip_for(state, "market.sam"),
+                    "Key publications",
+                    _pubs_value,
+                    subtitle="Key publications (PubMed)",
                 )
 
         # Two-box row for lead point + likely objection

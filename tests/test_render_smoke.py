@@ -391,3 +391,56 @@ class TestEmptyState:
     def test_display_qa_chat_section_empty(self):
         state = empty_state()
         display_qa_chat_section(state)
+
+
+# ---------------------------------------------------------------------------
+# At-a-glance band: scientific metrics (patients / trials / pubs)
+# ---------------------------------------------------------------------------
+
+class TestAtAGlanceBand:
+    """Focused tests for the three scientific metric cards in the at-a-glance band."""
+
+    def test_band_with_counts(self):
+        """Populated market_data with trials and publications renders without exception."""
+        market = MarketResearchData(
+            drug_name="sotorasib",
+            indication="KRAS G12C NSCLC",
+            patient_population=13_000,
+            clinical_trials=[
+                {"nct_id": "NCT04665128", "title": "CodeBreaK 100", "status": "Completed"},
+                {"nct_id": "NCT04303780", "title": "CodeBreaK 200", "status": "Completed"},
+            ],
+            key_publications=[
+                {"title": "Sotorasib for Lung Cancers", "journal": "NEJM", "pmid": "34096690"},
+            ],
+        )
+        state = GTMState(
+            drug_name="sotorasib",
+            indication="KRAS G12C NSCLC",
+            market_data=market,
+            sources={
+                "market.patient_population": Source(
+                    tier="verified",
+                    label="PubMed",
+                    url="https://pubmed.ncbi.nlm.nih.gov/34096690",
+                ),
+            },
+        )
+        display_msl_results(state, "MD Anderson", "Dr. X")
+
+    def test_band_market_data_none(self):
+        """When market_data is None the at-a-glance band skips metrics without crashing."""
+        state = GTMState(drug_name="x", indication="y", market_data=None)
+        display_msl_results(state, "Some Hospital", "Some Doctor")
+
+    def test_band_empty_lists(self):
+        """Empty clinical_trials and key_publications lists render '—' gracefully."""
+        market = MarketResearchData(
+            drug_name="x",
+            indication="y",
+            patient_population=None,
+            clinical_trials=[],
+            key_publications=[],
+        )
+        state = GTMState(drug_name="x", indication="y", market_data=market)
+        display_msl_results(state, "Hospital X", "Dr. Y")
