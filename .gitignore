@@ -73,3 +73,6 @@ build/
 EOF
 # Visual brainstorming companion (local only)
 .superpowers/
+
+# Local editor/file backups — never commit
+*.save
